@@ -44,10 +44,12 @@ export function toPublicSettings(s: BusinessSettings): PublicSettings {
 export const SECRET_KEYS = ['resend_api_key', 'resend_webhook_secret', 'whatsapp_access_token', 'whatsapp_app_secret', 'whatsapp_verify_token', 'meta_capi_token', 'gemini_api_key'] as const;
 export type SecretKey = (typeof SECRET_KEYS)[number];
 
+const ENV_FALLBACK: Partial<Record<SecretKey, keyof Env>> = { resend_api_key: 'RESEND_API_KEY', resend_webhook_secret: 'RESEND_WEBHOOK_SECRET', gemini_api_key: 'GEMINI_API_KEY' };
 export async function getSecret(env: Env, key: SecretKey): Promise<string | null> {
+  const fromEnv = ENV_FALLBACK[key] ? (env[ENV_FALLBACK[key]!] as string | undefined) : undefined;
   const row = await env.DB.prepare('SELECT ciphertext FROM secrets WHERE key = ?').bind(key).first<{ ciphertext: string }>();
-  if (!row) return null;
-  try { return await decryptText(env.DATA_KEY, row.ciphertext, 'secret:' + key); } catch { return null; }
+  if (!row) return fromEnv ?? null;
+  try { return await decryptText(env.DATA_KEY, row.ciphertext, 'secret:' + key); } catch { return fromEnv ?? null; }
 }
 export async function setSecret(env: Env, key: SecretKey, value: string) {
   const ct = await encryptText(env.DATA_KEY, value, 'secret:' + key);
@@ -63,6 +65,8 @@ export async function secretStatus(env: Env): Promise<Record<string, { set: bool
   const out: Record<string, { set: boolean; hint: string; updated_at: number | null }> = {};
   for (const k of SECRET_KEYS) out[k] = { set: false, hint: '', updated_at: null };
   for (const r of rows.results) out[r.key] = { set: true, hint: r.hint, updated_at: r.updated_at };
-  if (env.GEMINI_API_KEY && !out.gemini_api_key.set) out.gemini_api_key = { set: true, hint: 'Worker secret', updated_at: null };
+  for (const [k, envName] of Object.entries(ENV_FALLBACK)) {
+    if (env[envName as keyof Env] && !out[k].set) out[k] = { set: true, hint: 'Worker secret', updated_at: null };
+  }
   return out;
 }

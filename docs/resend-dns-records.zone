@@ -1,0 +1,5 @@
+; Resend sending records for lynto.store (region eu-west-1). Import in Cloudflare DNS → Import.
+; The resend._domainkey DKIM TXT record was already added; this file holds the remaining records.
+rsend.lynto.store.   1 IN CNAME rsend-euw1.forge.rmta.net.
+send.lynto.store.    1 IN CNAME send.forge.rmta.net.
+_dmarc.lynto.store.  1 IN TXT    "v=DMARC1; p=none;"

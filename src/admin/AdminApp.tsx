@@ -11,6 +11,7 @@ import { ProductsList } from './Products';
 import { ProductEditor } from './ProductEditor';
 import { Pricing } from './Pricing';
 import { Inbox } from './Inbox';
+import { Mail } from './Mail';
 import { Setup } from './Setup';
 import { Account } from './Account';
 
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/pricing', label: 'Pricing' },
   { to: '/admin/inbox', label: 'Notifications & support' },
+  { to: '/admin/mail', label: 'Email' },
   { to: '/admin/setup', label: 'Setup' },
   { to: '/admin/account', label: 'Account' },
 ];
@@ -123,6 +125,7 @@ function Shell({ status, onSignOut }: { status: Status; onSignOut: () => void })
   else if ((m = match('/admin/products/:id', pathname))) page = <ProductEditor key={m.id} id={m.id} />;
   else if (pathname === '/admin/pricing') page = <Pricing />;
   else if (pathname === '/admin/inbox' || pathname === '/admin/support') page = <Inbox />;
+  else if (pathname === '/admin/mail') page = <Mail />;
   else if (pathname === '/admin/setup') page = <Setup />;
   else if (pathname === '/admin/account') page = <Account />;
   else page = <Alert kind="warn" title="Page not found" />;

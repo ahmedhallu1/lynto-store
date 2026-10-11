@@ -98,6 +98,7 @@ export function Setup() {
             <Field label="Delivery promise (working hours)" htmlFor="sla" hint="Business decision: 2"><Input id="sla" type="number" step="0.5" min={0.5} value={s.delivery.sla_working_hours} onChange={(e) => upd('delivery', { sla_working_hours: Number(e.target.value) })} /></Field>
             <Field label="Cancel unpaid orders after (hours)" htmlFor="ux"><Input id="ux" type="number" min={1} value={s.delivery.unpaid_expiry_hours} onChange={(e) => upd('delivery', { unpaid_expiry_hours: Number(e.target.value) })} /></Field>
             <Field label="Renewal reminder (days before expiry)" htmlFor="rd"><Input id="rd" type="number" min={1} max={30} value={s.delivery.renewal_reminder_days} onChange={(e) => upd('delivery', { renewal_reminder_days: Number(e.target.value) })} /></Field>
+            <Field label="Unpaid-order reminder after (hours)" htmlFor="pr" hint="One automatic email/WhatsApp reminder; needs a working sender."><Input id="pr" type="number" min={1} max={168} value={s.delivery.payment_reminder_hours} onChange={(e) => upd('delivery', { payment_reminder_hours: Number(e.target.value) })} /></Field>
           </div>
           <Button size="sm" variant="secondary" onClick={() => save('delivery')} loading={busy === 'delivery'}>Save delivery settings</Button>
         </Section>
@@ -205,6 +206,7 @@ function ScheduleEditor({ s, setS }: { s: BusinessSettings; setS: (s: BusinessSe
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 text-xs">
+        <Button size="sm" variant="ghost" onClick={() => setS({ ...s, schedule: { ...s.schedule, week: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [String(d), [{ start: '00:00', end: '24:00' }]])) } })}>Template: 24/7</Button>
         <Button size="sm" variant="ghost" onClick={() => setS({ ...s, schedule: { ...s.schedule, week: Object.fromEntries([0, 1, 2, 3, 4, 6].map((d) => [String(d), [{ start: '10:00', end: '22:00' }]])) } })}>Template: Sat–Thu 10:00–22:00</Button>
         <Button size="sm" variant="ghost" onClick={() => setS({ ...s, schedule: { ...s.schedule, week: Object.fromEntries([0, 1, 2, 3, 4].map((d) => [String(d), [{ start: '09:00', end: '17:00' }]])) } })}>Template: Sun–Thu 9–5</Button>
       </div>
@@ -271,10 +273,12 @@ function NotificationsSection({ data, s, upd, save, busy, reload, setMsg }: any)
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="Email provider" htmlFor="ep">
           <Select id="ep" value={n.email_provider} onChange={(e) => upd('notifications', { email_provider: e.target.value })}>
-            <option value="none">None (manual mode)</option><option value="resend">Resend (free tier: account + DNS verification needed)</option><option value="cloudflare">Cloudflare Email Service (Workers Paid)</option>
+            <option value="none">None (manual mode)</option><option value="resend">Resend (domain verified in Resend)</option><option value="cloudflare">Cloudflare Email Service (Workers Paid)</option>
           </Select>
         </Field>
-        <Field label="From address (verified sender)" htmlFor="fe"><Input id="fe" dir="ltr" placeholder="orders@lynto.store" value={n.from_email} onChange={(e) => upd('notifications', { from_email: e.target.value })} /></Field>
+        <Field label="Sending domain (verified)" htmlFor="fd"><Input id="fd" dir="ltr" value={n.from_domain} onChange={(e) => upd('notifications', { from_domain: e.target.value })} /></Field>
+        <Field label="Order emails from" htmlFor="fe"><Input id="fe" dir="ltr" placeholder="orders@lynto.store" value={n.from_email} onChange={(e) => upd('notifications', { from_email: e.target.value })} /></Field>
+        <Field label="Support emails from" htmlFor="fs"><Input id="fs" dir="ltr" placeholder="support@lynto.store" value={n.from_support} onChange={(e) => upd('notifications', { from_support: e.target.value })} /></Field>
         <Field label="From name" htmlFor="fn"><Input id="fn" value={n.from_name} onChange={(e) => upd('notifications', { from_name: e.target.value })} /></Field>
         <Field label="Reply-to (optional)" htmlFor="rt"><Input id="rt" dir="ltr" value={n.reply_to} onChange={(e) => upd('notifications', { reply_to: e.target.value })} /></Field>
         <Field label="Owner alert email (new orders, proofs, overdue)" htmlFor="oa"><Input id="oa" dir="ltr" value={n.owner_alert_email} onChange={(e) => upd('notifications', { owner_alert_email: e.target.value })} /></Field>

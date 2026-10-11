@@ -28,6 +28,19 @@ export async function runScheduled(env: Env) {
   }
   report.overdue = overdue.length;
 
+  // 2b) One payment reminder for orders still awaiting transfer (real channels only — never creates manual to-dos).
+  const remindBefore = t - s.delivery.payment_reminder_hours * 3600_000;
+  const unpaid = (await env.DB.prepare(`SELECT * FROM orders WHERE payment_status = 'awaiting_transfer' AND reminder_processed = 0 AND created_at < ? AND created_at > ? LIMIT 50`).bind(remindBefore, t - s.delivery.unpaid_expiry_hours * 3600_000).all<any>()).results;
+  for (const o of unpaid) {
+    const channels = (await planCustomerChannels(env, s, o, 'payment_reminder')).filter((c) => c !== 'manual');
+    const guard = { sql: 'EXISTS (SELECT 1 FROM orders WHERE id = ? AND reminder_processed = 1 AND payment_status = \'awaiting_transfer\')', params: [o.id] };
+    await env.DB.batch([
+      env.DB.prepare('UPDATE orders SET reminder_processed = 1 WHERE id = ? AND reminder_processed = 0').bind(o.id),
+      ...(channels.length ? notificationStmts(env, { orderId: o.id, audience: 'customer', event: 'payment_reminder', channels, recipientFor: recipientFor(o), dedupeBase: `payment_reminder:${o.id}` }, guard) : []),
+    ]);
+  }
+  report.payment_reminders = unpaid.length;
+
   // 3) Renewal reminders (only with the customer's opt-in; never auto-charges).
   const windowEnd = t + s.delivery.renewal_reminder_days * 86_400_000;
   const due = (await env.DB.prepare(`SELECT i.id AS item_id, i.expires_at, i.product_title_ar, i.product_title_en, o.* FROM order_items i JOIN orders o ON o.id = i.order_id

@@ -51,7 +51,7 @@ export type BusinessSettings = {
   };
   payments: { methods: PaymentMethod[] };
   schedule: Schedule & { configured: boolean };
-  delivery: { sla_working_hours: number; unpaid_expiry_hours: number; renewal_reminder_days: number };
+  delivery: { sla_working_hours: number; unpaid_expiry_hours: number; renewal_reminder_days: number; payment_reminder_hours: number };
   support: {
     whatsapp: string;
     email: string;
@@ -71,7 +71,9 @@ export type BusinessSettings = {
   };
   notifications: {
     email_provider: 'none' | 'cloudflare' | 'resend';
+    from_domain: string;
     from_email: string;
+    from_support: string;
     from_name: string;
     reply_to: string;
     owner_alert_email: string;

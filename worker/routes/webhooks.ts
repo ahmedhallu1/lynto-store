@@ -58,8 +58,10 @@ webhooks.post('/resend', async (c) => {
   const t = now();
   if (msgId && evt.type === 'email.delivered') {
     await c.env.DB.prepare(`UPDATE notifications SET status = 'delivered', delivered_at = COALESCE(delivered_at, ?), updated_at = ? WHERE provider_message_id = ? AND status IN ('sent','pending')`).bind(t, t, msgId).run();
+    await c.env.DB.prepare(`UPDATE outbound_emails SET status = 'delivered', updated_at = ? WHERE provider_message_id = ? AND status IN ('sent','queued')`).bind(t, msgId).run();
   } else if (msgId && (evt.type === 'email.bounced' || evt.type === 'email.complained' || evt.type === 'email.failed')) {
     await c.env.DB.prepare(`UPDATE notifications SET status = 'failed', last_error = ?, updated_at = ? WHERE provider_message_id = ?`).bind(`Resend: ${evt.type}`, t, msgId).run();
+    await c.env.DB.prepare(`UPDATE outbound_emails SET status = 'failed', error = ?, updated_at = ? WHERE provider_message_id = ?`).bind(`Resend: ${evt.type}`, t, msgId).run();
   }
   return c.text('ok');
 });

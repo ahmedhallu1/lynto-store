@@ -7,6 +7,7 @@ import { Icon } from '../components/icons';
 import { Alert, Button, Field, Input, Select, Textarea } from '../components/ui';
 import { usePageTitle } from '../components/usePageTitle';
 import { WorkingHours } from './Home';
+import { isAlwaysOpen } from '../lib/format';
 
 function Prose({ title, children }: { title: string; children: ReactNode }) {
   usePageTitle(title);
@@ -61,7 +62,7 @@ export function Support() {
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <details key={n} className="group py-3">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-medium">{t(`faq.${n}.q` as any)}<span className="text-cyan transition group-open:rotate-45" aria-hidden>+</span></summary>
-                  <p className="mt-2 text-sm text-muted">{t(`faq.${n}.a` as any)}</p>
+                  <p className="mt-2 text-sm text-muted">{t((n === 1 && isAlwaysOpen(data?.settings.schedule_summary.week) ? 'faq.1.a247' : `faq.${n}.a`) as any)}</p>
                 </details>
               ))}
             </div>
@@ -137,6 +138,7 @@ export function Terms() {
   const { data } = useStore();
   const p = data?.settings.policies;
   const hours = data?.settings.sla_working_hours ?? 2;
+  const open247 = isAlwaysOpen(data?.settings.schedule_summary.week);
   return (
     <Prose title={t('terms.title')}>
       {!p?.confirmed && <Alert kind="warn">{t('policy.pending')}</Alert>}
@@ -147,7 +149,7 @@ export function Terms() {
           <h2>الدفع</h2>
           <ul><li>الدفع بتحويل يدوي (إنستاباي، تحويل بنكي، أو محفظة) على البيانات اللي بتظهر في صفحة طلبك.</li><li>الطلب بيتأكد بس بعد ما نتأكد بنفسنا إن المبلغ وصل حسابنا. صورة الإيصال لوحدها مش تأكيد.</li><li>الطلبات اللي مفيش لها تحويل خلال المدة المحددة ممكن تتلغي تلقائياً.</li></ul>
           <h2>التسليم</h2>
-          <ul><li>بنسلّم خلال {hours === 2 ? 'ساعتين' : `${hours} ساعات`} عمل من تأكيد الدفع حسب مواعيد العمل المنشورة (بتوقيت القاهرة).</li><li>التفاصيل بتظهر في صفحة طلبك الخاصة، وممكن نبعتها كمان على واتساب أو الإيميل.</li><li>مش بنطلب كلمة سر أي حساب. لو المنتج محتاج بيانات (زي إيميل الحساب أو رقم اللاعب) بنطلبها في صفحة المنتج.</li></ul>
+          <ul><li>بنسلّم خلال {hours === 2 ? 'ساعتين' : `${hours} ساعات`} {open247 ? 'من تأكيد الدفع، وإحنا شغالين 24/7' : 'عمل من تأكيد الدفع حسب مواعيد العمل المنشورة (بتوقيت القاهرة)'}.</li><li>التفاصيل بتظهر في صفحة طلبك الخاصة، وممكن نبعتها كمان على واتساب أو الإيميل.</li><li>مش بنطلب كلمة سر أي حساب. لو المنتج محتاج بيانات (زي إيميل الحساب أو رقم اللاعب) بنطلبها في صفحة المنتج.</li></ul>
           <h2>التجديد</h2>
           <p>مفيش تجديد أو خصم أوتوماتيك. التجديد بيكون بطلب ودفع جديد.</p>
           <h2>الضمان والاسترجاع</h2>
@@ -159,7 +161,7 @@ export function Terms() {
           <h2>Payment</h2>
           <ul><li>Payment is by manual transfer (InstaPay, bank transfer or mobile wallet) to the details shown on your order page.</li><li>An order is confirmed only after we verify that the money reached our account. A receipt image alone is not confirmation.</li><li>Orders without a transfer within the stated window may be cancelled automatically.</li></ul>
           <h2>Delivery</h2>
-          <ul><li>We deliver within {hours} working hours of payment verification, following our published working hours (Cairo time).</li><li>Details appear on your private order page and may also be sent by WhatsApp or email.</li><li>We never ask for any account password. If a product needs data (such as an account email or player ID), we ask for it on the product page.</li></ul>
+          <ul><li>We deliver within {hours} {open247 ? 'hours of payment verification, and we work 24/7' : 'working hours of payment verification, following our published working hours (Cairo time)'}.</li><li>Details appear on your private order page and may also be sent by WhatsApp or email.</li><li>We never ask for any account password. If a product needs data (such as an account email or player ID), we ask for it on the product page.</li></ul>
           <h2>Renewals</h2>
           <p>Nothing renews or is charged automatically. Renewing requires a new order and payment.</p>
           <h2>Guarantee and refunds</h2>

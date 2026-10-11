@@ -4,7 +4,7 @@ import type { AppContext } from '../env';
 import { requireAdmin } from '../lib/auth';
 import { decryptText, newId } from '../lib/crypto';
 import { HttpError, audit, bad, conflict, notFound, now, parseCsv, parseJSON, toCsv, baseUrl, normalizePhone } from '../lib/util';
-import { SECRET_KEYS, deleteSecret, loadSettings, saveSettings, secretStatus, setSecret, type SecretKey } from '../lib/settings';
+import { SECRET_KEYS, deleteSecret, getSecret, loadSettings, saveSettings, secretStatus, setSecret, type SecretKey } from '../lib/settings';
 import { checkoutBlockers } from '../../shared/defaults';
 import { isValidInterval, localParts, zonedToUtc } from '../../shared/schedule';
 import { parseEGP, piastresToEGPString } from '../../shared/money';
@@ -19,6 +19,8 @@ import { sendPurchase } from '../services/meta';
 import { aiUsageToday, draftProductCopy, geminiKey } from '../services/gemini';
 import { sniffMime } from '../services/orders';
 import { runScheduled } from '../services/cron';
+import { composeAndSend, resendDomainStatus } from '../services/mail';
+import { enforceRate } from '../lib/util';
 
 export const admin = new Hono<AppContext>();
 admin.use('*', requireAdmin);
@@ -626,14 +628,14 @@ const sectionSchemas = {
     week: z.partialRecord(z.enum(['0', '1', '2', '3', '4', '5', '6']), z.array(intervalSchema).max(4)),
     holidays: z.array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), label: z.string().max(80).optional(), intervals: z.array(intervalSchema).max(4).optional() })).max(120),
   }),
-  delivery: z.object({ sla_working_hours: z.number().min(0.5).max(72), unpaid_expiry_hours: z.number().int().min(1).max(720), renewal_reminder_days: z.number().int().min(1).max(30) }),
+  delivery: z.object({ sla_working_hours: z.number().min(0.5).max(72), unpaid_expiry_hours: z.number().int().min(1).max(720), renewal_reminder_days: z.number().int().min(1).max(30), payment_reminder_hours: z.number().int().min(1).max(168) }),
   support: z.object({
     whatsapp: z.string().trim().max(24), email: z.string().trim().max(254), phone: z.string().trim().max(24), hours_note_ar: z.string().max(200), hours_note_en: z.string().max(200),
     socials: z.object({ facebook: z.string().max(200), instagram: z.string().max(200), tiktok: z.string().max(200), telegram: z.string().max(200), x: z.string().max(200), youtube: z.string().max(200) }),
   }),
   policies: z.object({ confirmed: z.boolean(), guarantee_ar: z.string().max(5000), guarantee_en: z.string().max(5000), refund_ar: z.string().max(5000), refund_en: z.string().max(5000), terms_extra_ar: z.string().max(5000), terms_extra_en: z.string().max(5000) }),
   notifications: z.object({
-    email_provider: z.enum(['none', 'cloudflare', 'resend']), from_email: z.string().trim().max(254), from_name: z.string().trim().max(80), reply_to: z.string().trim().max(254), owner_alert_email: z.string().trim().max(254),
+    email_provider: z.enum(['none', 'cloudflare', 'resend']), from_domain: z.string().trim().toLowerCase().regex(/^[a-z0-9.-]{3,80}$/), from_email: z.string().trim().toLowerCase().max(254), from_support: z.string().trim().toLowerCase().max(254), from_name: z.string().trim().max(80), reply_to: z.string().trim().max(254), owner_alert_email: z.string().trim().max(254),
     whatsapp_enabled: z.boolean(), whatsapp_phone_number_id: z.string().trim().regex(/^\d*$/).max(30), whatsapp_api_version: z.string().regex(/^v\d+\.\d+$/),
     whatsapp_templates: z.record(z.string(), z.object({ name: z.string().trim().regex(/^[a-z0-9_]*$/).max(512), language: z.string().trim().max(10) })),
   }),
@@ -748,6 +750,46 @@ admin.get('/expiring', async (c) => {
   const rows = await c.env.DB.prepare(`SELECT i.id, i.order_id, i.product_title_en, i.plan_name_en, i.activated_at, i.expires_at, i.renewal_reminded_at, o.number, o.customer_name, o.renewal_optin
     FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.expires_at IS NOT NULL AND i.expires_at BETWEEN ? AND ? AND o.payment_status = 'verified' ORDER BY i.expires_at LIMIT 100`).bind(t - 7 * 86_400_000, t + 30 * 86_400_000).all();
   return c.json({ items: rows.results, now: t });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Owner mail: send from any username @ the verified domain, with a log
+// ---------------------------------------------------------------------------------------------
+admin.get('/mail/info', async (c) => {
+  const s = await loadSettings(c.env);
+  const health = await channelHealth(c.env, s);
+  const key = await getSecret(c.env, 'resend_api_key');
+  return c.json({
+    domain: s.notifications.from_domain, provider: s.notifications.email_provider, ready: health.email.usable, reason: health.email.reason,
+    domain_status: s.notifications.email_provider === 'resend' ? await resendDomainStatus(c.env, s.notifications.from_domain, key) : { available: false, note: 'Resend is not the selected provider.' },
+    suggested: ['orders', 'support', 'contact', 'info', 'hello', 'billing', 'noreply'],
+    default_from_name: s.notifications.from_name,
+  });
+});
+
+admin.post('/mail/send', async (c) => {
+  await enforceRate(c.env, `mail:${c.get('admin').id}`, 60, 3600_000);
+  const b = await body(c, z.object({
+    from_local: z.string().trim().min(1).max(40), from_name: z.string().trim().max(80).optional(),
+    to: z.array(z.string().trim().max(254)).min(1).max(10), reply_to: z.string().trim().max(254).optional(),
+    subject: z.string().trim().min(1).max(200), body: z.string().trim().min(1).max(20000),
+    lang: z.enum(['ar', 'en']).default('ar'), order_id: z.string().max(64).nullable().optional(),
+  }));
+  const r = await composeAndSend(c.env, actor(c), b);
+  await audit(c.env, actor(c), 'email_composed', 'email', '', { from: r.from, to: b.to, subject: b.subject });
+  return c.json(r);
+});
+
+admin.get('/mail/log', async (c) => {
+  const rows = await c.env.DB.prepare(`SELECT e.id, e.from_addr, e.to_addr, e.reply_to, e.subject, e.status, e.error, e.created_by, e.created_at, e.order_id, o.number AS order_number
+    FROM outbound_emails e LEFT JOIN orders o ON o.id = e.order_id ORDER BY e.created_at DESC LIMIT 200`).all();
+  return c.json({ emails: rows.results });
+});
+
+admin.get('/mail/log/:id', async (c) => {
+  const r = await c.env.DB.prepare('SELECT * FROM outbound_emails WHERE id = ?').bind(c.req.param('id')).first();
+  if (!r) throw notFound();
+  return c.json({ email: r });
 });
 
 admin.post('/system/run-jobs', async (c) => {

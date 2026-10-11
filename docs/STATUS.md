@@ -1,6 +1,6 @@
 # Implementation status (persistent checklist)
 
-Last updated: 11 Oct 2026. Legend: ✅ built & tested · 🟡 built, needs owner input/credentials · ⏳ pending (owner-only).
+Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend: ✅ built & tested · 🟡 built, needs owner input/credentials · ⏳ pending (owner-only).
 
 ## Infrastructure
 | Item | Status | Evidence |
@@ -60,6 +60,20 @@ Last updated: 11 Oct 2026. Legend: ✅ built & tested · 🟡 built, needs owner
 | Setup screen (payments, hours/holidays, support, policies, notifications, tracking, AI, health) | ✅ |
 | Cloudflare Access on /admin | ⏳ optional; OAuth scope here cannot configure Access |
 
-## Owner decisions still open (none block the launch page)
+## Added 11 Oct 2026 (second pass)
+| Item | Status | Evidence |
+|---|---|---|
+| Launch catalogue: 74 products / 207 plans, 97–44,300 EGP, published with **estimated** prices | ✅ live (prices to be reviewed by owner) | migration 0003 |
+| 24/7 working hours (Africa/Cairo), storefront copy adapts ("within 2 hours, around the clock") | ✅ | production settings merged; unit tests incl. DST |
+| Arabic fonts: Cairo (headings) + Tajawal (body) replace IBM Plex Sans Arabic | ✅ | screenshots |
+| Resend domain lynto.store verified; DKIM/SPF/DMARC records in Cloudflare; webhook for delivery/bounce | ✅ | Resend dashboard + live "Delivered" |
+| Automated order email via production pipeline | ✅ | test order → Resend "Delivered" (order cancelled) |
+| Admin → Email: send from any username@lynto.store, templates, sent log | ✅ | E2E (mock Resend) |
+| Automations: payment reminder, support acknowledgement, branded emails | ✅ | E2E |
+| Receiving mail at @lynto.store (Cloudflare Email Routing) | ⏳ owner: 3 minutes (EMAIL_GUIDE.md §3) | — |
+| Owner alert email address | ⏳ owner: Setup | — |
+| WhatsApp Cloud API | ⏳ owner accounts (WHATSAPP_GUIDE.md) | — |
+
+## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.

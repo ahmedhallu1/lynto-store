@@ -33,6 +33,7 @@ export const DEFAULT_WA_TEMPLATES: BusinessSettings['notifications']['whatsapp_t
   order_delivered: { name: '', language: 'ar_EG' },
   item_delivered: { name: '', language: 'ar_EG' },
   renewal_reminder: { name: '', language: 'ar_EG' },
+  payment_reminder: { name: '', language: 'ar_EG' },
 };
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
@@ -45,14 +46,14 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
     ],
   },
   schedule: { configured: false, timezone: 'Africa/Cairo', week: {}, holidays: [] },
-  delivery: { sla_working_hours: 2, unpaid_expiry_hours: 48, renewal_reminder_days: 3 },
+  delivery: { sla_working_hours: 2, unpaid_expiry_hours: 48, renewal_reminder_days: 3, payment_reminder_hours: 6 },
   support: {
     whatsapp: '', email: '', phone: '', hours_note_ar: '', hours_note_en: '',
     socials: { facebook: '', instagram: '', tiktok: '', telegram: '', x: '', youtube: '' },
   },
   policies: { confirmed: false, ...DRAFT_POLICIES, terms_extra_ar: '', terms_extra_en: '' },
   notifications: {
-    email_provider: 'none', from_email: '', from_name: 'LYnto', reply_to: '', owner_alert_email: '',
+    email_provider: 'none', from_domain: 'lynto.store', from_email: 'orders@lynto.store', from_support: 'support@lynto.store', from_name: 'LYnto', reply_to: '', owner_alert_email: '',
     whatsapp_enabled: false, whatsapp_phone_number_id: '', whatsapp_api_version: 'v23.0',
     whatsapp_templates: DEFAULT_WA_TEMPLATES,
   },

@@ -51,6 +51,12 @@ export async function planCustomerChannels(env: Env, s: BusinessSettings, order:
   return ch;
 }
 
+/** Support acknowledgements: email only, and only when the contact is an email address and sending works. */
+export async function planSupportChannels(env: Env, s: BusinessSettings, contact: string): Promise<Channel[]> {
+  const h = await channelHealth(env, s);
+  return h.email.usable && /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/.test(contact.trim()) ? ['email'] : [];
+}
+
 /** Build INSERT OR IGNORE statements for notifications. `guardSql` makes the insert conditional (atomic with the action). */
 export function notificationStmts(
   env: Env,
@@ -87,12 +93,17 @@ type NotificationRow = {
   status: string; attempts: number; payload: string;
 };
 
-async function sendEmail(env: Env, s: BusinessSettings, to: string, subject: string, html: string, text: string, idem: string): Promise<{ provider: string; id: string | null }> {
+export type SendOpts = { from?: string; fromName?: string; replyTo?: string };
+
+export async function sendEmail(env: Env, s: BusinessSettings, to: string, subject: string, html: string, text: string, idem: string, opts: SendOpts = {}): Promise<{ provider: string; id: string | null }> {
   const n = s.notifications;
+  const addr = opts.from ?? n.from_email;
+  const name = opts.fromName ?? n.from_name;
+  const replyTo = opts.replyTo ?? n.reply_to;
   if (n.email_provider === 'cloudflare') {
     if (!env.EMAIL) throw new PermanentError('Cloudflare Email binding missing');
     try {
-      const res: any = await env.EMAIL.send({ to, from: n.from_email, subject, html, text, ...(n.reply_to ? { replyTo: n.reply_to } : {}) });
+      const res: any = await env.EMAIL.send({ to, from: addr, subject, html, text, ...(replyTo ? { replyTo } : {}) });
       return { provider: 'cloudflare', id: res?.messageId ?? res?.id ?? null };
     } catch (e: any) {
       const msg = String(e?.message ?? e);
@@ -103,11 +114,11 @@ async function sendEmail(env: Env, s: BusinessSettings, to: string, subject: str
   if (n.email_provider === 'resend') {
     const key = await getSecret(env, 'resend_api_key');
     if (!key) throw new PermanentError('Resend API key missing');
-    const from = n.from_name ? `${n.from_name} <${n.from_email}>` : n.from_email;
+    const from = name ? `${name.replace(/[<>"]/g, '')} <${addr}>` : addr;
     const res = await fetch(providerBase(env, 'https://api.resend.com') + '/emails', {
       method: 'POST',
       headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'idempotency-key': idem },
-      body: JSON.stringify({ from, to: [to], subject, html, text, ...(n.reply_to ? { reply_to: n.reply_to } : {}) }),
+      body: JSON.stringify({ from, to: [to], subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
       signal: AbortSignal.timeout(15_000),
     });
     const body: any = await res.json().catch(() => ({}));
@@ -159,7 +170,11 @@ async function deliverOne(env: Env, s: BusinessSettings, row: NotificationRow) {
     return sendEmail(env, s, row.recipient, `[LYnto] ${r.subject}`, emailHtml(r, link, 'en', store), `${r.text}\n\n${link}`, row.id);
   }
   const r = renderCustomer(row.event as CustomerEvent, ctx);
-  if (row.channel === 'email') return sendEmail(env, s, row.recipient, r.subject, emailHtml(r, ctx.link, lang, store), `${r.text}\n\n${r.cta}: ${row.event === 'renewal_reminder' ? store : ctx.link}`, row.id);
+  const support = { whatsapp: s.support.whatsapp, email: s.support.email };
+  if (row.channel === 'email') {
+    const from = row.event === 'support_received' ? s.notifications.from_support || s.notifications.from_email : s.notifications.from_email;
+    return sendEmail(env, s, row.recipient, r.subject, emailHtml(r, ctx.link, lang, store, support), `${r.text}\n\n${r.cta}: ${row.event === 'renewal_reminder' ? store : ctx.link}`, row.id, { from });
+  }
   if (row.channel === 'whatsapp') return sendWhatsApp(env, s, row.recipient, row.event as CustomerEvent, r.waParams);
   throw new PermanentError('Manual channel cannot be auto-sent');
 }
@@ -198,8 +213,8 @@ export async function sendTest(env: Env, channel: 'email' | 'whatsapp', to: stri
   const s = await loadSettings(env);
   const store = baseUrl(env);
   if (channel === 'email') {
-    const r = { subject: 'LYnto test email', text: 'This is a test message from your LYnto store settings.', cta: 'Open store', waParams: [] };
-    return sendEmail(env, s, to, r.subject, emailHtml(r, store, 'en', store), r.text, 'test-' + crypto.randomUUID());
+    const r = { subject: 'LYnto test email', preheader: 'Email sending works.', text: 'This is a test message from your LYnto store settings. If you can read this, sending from your domain works.', cta: 'Open store', waParams: [], rows: [['Sender', s.notifications.from_email]] as Array<[string, string]> };
+    return sendEmail(env, s, to, r.subject, emailHtml(r, store, 'en', store, { whatsapp: s.support.whatsapp, email: s.support.email }), r.text, 'test-' + crypto.randomUUID());
   }
   const r = renderCustomer('order_received', { lang: 'ar', name: 'Test', number: 'LY-TEST00', total_piastres: 100, link: store, store_url: store });
   return sendWhatsApp(env, s, to, 'order_received', r.waParams);

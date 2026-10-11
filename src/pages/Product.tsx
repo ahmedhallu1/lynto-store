@@ -5,7 +5,7 @@ import { Link, navigate, useLocation } from '../lib/router';
 import { adminApi, api } from '../lib/api';
 import { cart } from '../lib/cart';
 import { useStore } from '../lib/store';
-import { durationLabel, money } from '../lib/format';
+import { durationLabel, isAlwaysOpen, money } from '../lib/format';
 import { track } from '../lib/pixel';
 import { Icon } from '../components/icons';
 import { Alert, Badge, Button, Field, Input, ProductMark, Select, Spinner, cx } from '../components/ui';
@@ -114,7 +114,7 @@ export function ProductPage({ slug }: { slug: string }) {
             <div>
               <h2 className="flex items-center gap-2 font-semibold"><Icon.bolt className="text-cyan" width={18} height={18} /> {t('product.delivery')}</h2>
               <p className="mt-1 text-muted">{pick(product.delivery_ar, product.delivery_en) || t('product.delivery.default')}</p>
-              <p className="mt-1 text-sm text-text">{t('product.delivery.time')}</p>
+              <p className="mt-1 text-sm text-text">{t(isAlwaysOpen(data?.settings.schedule_summary.week) ? 'product.delivery.time247' : 'product.delivery.time')}</p>
             </div>
             <div>
               <h2 className="flex items-center gap-2 font-semibold"><Icon.shield className="text-cyan" width={18} height={18} /> {t('product.guarantee')}</h2>

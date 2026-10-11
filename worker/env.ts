@@ -13,6 +13,8 @@ export interface Env {
   TOKEN_SECRET: string; // HMAC key for customer tokens / hashing
   SETUP_TOKEN?: string; // one-time admin bootstrap token
   GEMINI_API_KEY?: string; // optional
+  RESEND_API_KEY?: string; // optional: Resend sending key (can also be stored encrypted from Admin → Setup)
+  RESEND_WEBHOOK_SECRET?: string; // optional: Resend webhook signing secret (whsec_…)
 
   // Optional Cloudflare Access hardening for /admin
   ACCESS_TEAM_DOMAIN?: string;

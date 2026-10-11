@@ -16,6 +16,7 @@ const artifacts = join(root, 'tests', 'e2e', '.artifacts');
 mkdirSync(artifacts, { recursive: true });
 const devVars = existsSync(join(root, '.dev.vars')) ? Object.fromEntries(readFileSync(join(root, '.dev.vars'), 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)])) : {};
 const BASE = (process.env.BASE ?? 'http://127.0.0.1:4173').replace(/\/$/, '');
+if (/(^|\/\/)(www\.)?lynto\.store/.test(BASE)) { console.error('Refusing to run destructive E2E tests against production.'); process.exit(2); }
 const SETUP_TOKEN = process.env.SETUP_TOKEN ?? devVars.SETUP_TOKEN;
 const LOCAL = !process.env.NO_MOCK;
 const D1_TARGET = process.env.D1_TARGET ?? '--local';
@@ -94,6 +95,7 @@ const adminFile = join(artifacts, `admin-${new URL(BASE).host.replace(/[^a-z0-9]
 const creds = existsSync(adminFile) ? JSON.parse(readFileSync(adminFile, 'utf8')) : { email: `owner-test@example.com`, password: crypto.randomBytes(18).toString('base64url') };
 const customer = (n) => ({ name: `Test Customer ${n}`, email: `customer${n}+${RUN}@example.com`, whatsapp: '+201000000' + String(100 + n).slice(-3), preferred_channel: 'whatsapp', whatsapp_optin: false, renewal_optin: true });
 const orders = {};
+const T = {}; // isolated products created by this run
 
 async function main() {
   console.log(`LYnto E2E — ${BASE} (${LOCAL ? 'local with mock providers' : 'remote, no mocks'})`);
@@ -135,40 +137,59 @@ async function main() {
     if (!cookie) cookie = saved;
   });
 
+  // ------------------------------------------------------------ isolated catalogue (independent of the live launch catalogue)
+  await test('create isolated test products (draft, subscription, top-up)', async () => {
+    const base = { category_id: 'cat_ai', brand: 'E2E', summary_ar: 'اختبار', summary_en: 'test', description_ar: 'وصف اختبار', description_en: 'test description', features_ar: [], features_en: [],
+      delivery_ar: '', delivery_en: '', guarantee_ar: '', guarantee_en: '', owner_instructions: '', image_key: null, icon_text: 'E2E', accent: '', featured: false, supply_status: 'pending', supply_notes: '', official_url: '', sort: 900 };
+    const plan = (id, over) => ({ id, name_ar: 'خطة', name_en: 'Plan', plan_type: 'private', duration_value: 1, duration_unit: 'month', is_perpetual: false, price_egp: null, status: 'proposed', availability: 'available', max_qty: 1, guarantee_kind: 'pending', guarantee_days: null, notes_ar: '', notes_en: '', sort: 0, ...over });
+    const emailField = { key: 'account_email', type: 'email', required: true, label_ar: 'الإيميل', label_en: 'Email' };
+    const playerField = { key: 'player_id', type: 'text', required: true, pattern: '^[0-9]{5,16}$', label_ar: 'رقم اللاعب', label_en: 'Player ID' };
+    const mk = async (slug, over, plans) => { const r = await A.post('/products', { ...base, slug, title_ar: 'منتج اختبار ' + slug, title_en: 'E2E ' + slug, ...over, plans }); eq(r.status, 201, 'create ' + slug + ' ' + r.text); return r.json.product; };
+    const d = await mk('e2e-draft-' + RUN, { customer_fields: [emailField] }, [plan('pln_e2ed' + RUN)]);
+    T.draft = { id: d.id, slug: d.slug, plan: 'pln_e2ed' + RUN };
+    const sub = await mk('e2e-sub-' + RUN, { customer_fields: [emailField] }, [plan('pln_e2es' + RUN)]);
+    T.sub = { id: sub.id, slug: sub.slug, plan: 'pln_e2es' + RUN };
+    const top = await mk('e2e-topup-' + RUN, { customer_fields: [playerField] }, [
+      plan('pln_e2et60' + RUN, { plan_type: 'topup', is_perpetual: true, duration_value: null, duration_unit: null, max_qty: 5 }),
+      plan('pln_e2et325' + RUN, { plan_type: 'topup', is_perpetual: true, duration_value: null, duration_unit: null, max_qty: 5 })]);
+    T.top = { id: top.id, slug: top.slug, plan60: 'pln_e2et60' + RUN, plan325: 'pln_e2et325' + RUN };
+  });
+
   // ------------------------------------------------------------ draft exclusion
   await test('drafts are not exposed publicly (API, HTML, sitemap)', async () => {
     const r = await P.get('/products');
     eq(r.status, 200, 'status');
     const ids = r.json.products.map((p) => p.slug);
-    assert(!ids.includes('claude-pro'), 'claude-pro (draft) must not be listed');
-    eq((await P.get('/products/claude-pro')).status, 404, 'draft product API');
-    const html = await req('GET', '/p/claude-pro');
+    assert(!ids.includes(T.draft.slug), 'claude-pro (draft) must not be listed');
+    eq((await P.get(`/products/${T.draft.slug}`)).status, 404, 'draft product API');
+    const html = await req('GET', `/p/${T.draft.slug}`);
     eq(html.status, 404, 'draft product page status');
     assert(html.text.includes('noindex'), 'draft page must be noindex');
     const sm = await req('GET', '/sitemap.xml');
-    assert(!sm.text.includes('/p/claude-pro'), 'sitemap must not include drafts');
+    assert(!sm.text.includes(`/p/${T.draft.slug}`), 'sitemap must not include drafts');
   });
   await test('draft plans cannot be quoted or ordered', async () => {
-    const q = await P.post('/cart/quote', { lang: 'ar', lines: [{ plan_id: 'pln_claude_pro_1m', qty: 1, fields: {} }] });
+    const q = await P.post('/cart/quote', { lang: 'ar', lines: [{ plan_id: T.draft.plan, qty: 1, fields: {} }] });
     eq(q.json.problems[0]?.error, 'unavailable', 'quote problem');
   });
   await test('checkout is disabled while setup is incomplete', async () => {
-    const r = await P.post('/orders', orderBody([{ plan_id: 'pln_claude_pro_1m', qty: 1, fields: { account_email: 'a@b.co' } }], 100, 'x'));
+    await A.put('/settings/store', { accepting_orders: false, business_name: 'LYnto', announcement_ar: '', announcement_en: '' });
+    const r = await P.post('/orders', orderBody([{ plan_id: T.draft.plan, qty: 1, fields: { account_email: 'a@b.co' } }], 100, 'x'));
     assert([403, 409].includes(r.status), `status ${r.status}`);
   });
   await test('admin preview can view a draft; public cannot', async () => {
-    eq((await A.get('/products/prd_claude_pro/preview')).status, 200, 'admin preview');
-    eq((await req('GET', '/api/admin/products/prd_claude_pro/preview')).status, 401, 'no cookie');
+    eq((await A.get(`/products/${T.draft.id}/preview`)).status, 200, 'admin preview');
+    eq((await req('GET', `/api/admin/products/${T.draft.id}/preview`)).status, 401, 'no cookie');
   });
 
   // ------------------------------------------------------------ publish validation
   await test('publishing an unpriced/unvalidated product is refused with reasons', async () => {
-    const r = await A.post('/products/prd_chatgpt_plus/status', { status: 'published' });
+    const r = await A.post(`/products/${T.sub.id}/status`, { status: 'published' });
     eq(r.status, 409, 'status');
     assert(Array.isArray(r.json.details) && r.json.details.some((d) => /price|approved/i.test(d)), 'problems listed');
   });
   await test('a plan cannot be approved without a price', async () => {
-    const r = await A.post('/plans/bulk', { plans: [{ id: 'pln_chatgpt_plus_1m', price_egp: null, status: 'approved', availability: 'available' }] });
+    const r = await A.post('/plans/bulk', { plans: [{ id: T.sub.plan, price_egp: null, status: 'approved', availability: 'available' }] });
     eq(r.status, 400, 'status');
   });
 
@@ -195,31 +216,31 @@ async function main() {
 
   // ------------------------------------------------------------ catalog approval
   await test('owner approves plans/prices and publishes products', async () => {
-    const prod = (await A.get('/products/prd_chatgpt_plus')).json.product;
-    const r = await A.put('/products/prd_chatgpt_plus', { ...strip(prod), supply_status: 'validated', plans: prod.plans.map((pl) => ({ ...stripPlan(pl), price_egp: '450', status: 'approved', guarantee_kind: 'full_period' })) });
+    const prod = (await A.get(`/products/${T.sub.id}`)).json.product;
+    const r = await A.put(`/products/${T.sub.id}`, { ...strip(prod), supply_status: 'validated', plans: prod.plans.map((pl) => ({ ...stripPlan(pl), price_egp: '450', status: 'approved', guarantee_kind: 'full_period' })) });
     eq(r.status, 200, 'save chatgpt');
-    eq((await A.post('/products/prd_chatgpt_plus/status', { status: 'published' })).status, 200, 'publish chatgpt');
-    const pubg = (await A.get('/products/prd_pubg_uc')).json.product;
-    eq((await A.put('/products/prd_pubg_uc', { ...strip(pubg), supply_status: 'validated', plans: pubg.plans.map((pl, i) => ({ ...stripPlan(pl), price_egp: i === 0 ? '55.50' : '', status: i === 0 ? 'approved' : 'proposed', guarantee_kind: 'none' })) })).status, 200, 'save pubg');
-    eq((await A.post('/products/prd_pubg_uc/status', { status: 'published' })).status, 200, 'publish pubg');
+    eq((await A.post(`/products/${T.sub.id}/status`, { status: 'published' })).status, 200, 'publish chatgpt');
+    const pubg = (await A.get(`/products/${T.top.id}`)).json.product;
+    eq((await A.put(`/products/${T.top.id}`, { ...strip(pubg), supply_status: 'validated', plans: pubg.plans.map((pl, i) => ({ ...stripPlan(pl), price_egp: i === 0 ? '55.50' : '', status: i === 0 ? 'approved' : 'proposed', guarantee_kind: 'none' })) })).status, 200, 'save pubg');
+    eq((await A.post(`/products/${T.top.id}/status`, { status: 'published' })).status, 200, 'publish pubg');
   });
   await test('published products appear publicly with SEO tags; unapproved plans stay hidden', async () => {
-    const r = await P.get('/products/chatgpt-plus');
+    const r = await P.get(`/products/${T.sub.slug}`);
     eq(r.status, 200, 'api');
     eq(r.json.product.plans[0].price_piastres, 45000, 'price');
-    const pubg = (await P.get('/products/pubg-mobile-uc')).json.product;
+    const pubg = (await P.get(`/products/${T.top.slug}`)).json.product;
     eq(pubg.plans.length, 1, 'only the approved PUBG plan is public');
-    const html = await req('GET', '/en/p/chatgpt-plus');
+    const html = await req('GET', `/en/p/${T.sub.slug}`);
     eq(html.status, 200, 'html');
     assert(html.text.includes('rel="canonical"') && html.text.includes('application/ld+json') && html.text.includes('hreflang="ar-EG"'), 'seo tags');
-    assert(html.text.includes('ChatGPT Plus'), 'prerendered content');
-    assert((await req('GET', '/sitemap.xml')).text.includes('/p/chatgpt-plus'), 'sitemap includes published');
+    assert(html.text.includes('E2E ' + T.sub.slug), 'prerendered content');
+    assert((await req('GET', '/sitemap.xml')).text.includes(`/p/${T.sub.slug}`), 'sitemap includes published');
   });
 
   // ------------------------------------------------------------ checkout integrity
   const lines = [
-    { plan_id: 'pln_chatgpt_plus_1m', qty: 1, fields: { account_email: 'buyer-account@example.com' } },
-    { plan_id: 'pln_pubg_60', qty: 2, fields: { player_id: '5123456789' } },
+    { plan_id: T.sub.plan, qty: 1, fields: { account_email: 'buyer-account@example.com' } },
+    { plan_id: T.top.plan60, qty: 2, fields: { player_id: '5123456789' } },
   ];
   const total = 45000 + 2 * 5550;
   await test('server rejects a manipulated checkout total', async () => {
@@ -231,10 +252,10 @@ async function main() {
     eq(r.json.total_piastres, total, 'quote total');
   });
   await test('server rejects quantity above plan max and missing/invalid required fields', async () => {
-    eq((await P.post('/orders', orderBody([{ plan_id: 'pln_chatgpt_plus_1m', qty: 2, fields: { account_email: 'a@b.co' } }], 90000, 'qty-' + RUN))).json.error, 'cart_invalid', 'qty');
-    eq((await P.post('/orders', orderBody([{ plan_id: 'pln_chatgpt_plus_1m', qty: 1, fields: {} }], 45000, 'fld-' + RUN))).json.error, 'cart_invalid', 'missing field');
-    eq((await P.post('/orders', orderBody([{ plan_id: 'pln_pubg_60', qty: 1, fields: { player_id: 'abc' } }], 5550, 'pat-' + RUN))).json.error, 'cart_invalid', 'pattern');
-    eq((await P.post('/orders', orderBody([{ plan_id: 'pln_pubg_325', qty: 1, fields: { player_id: '5123456789' } }], 1, 'unap-' + RUN))).json.error, 'cart_invalid', 'unapproved plan');
+    eq((await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 2, fields: { account_email: 'a@b.co' } }], 90000, 'qty-' + RUN))).json.error, 'cart_invalid', 'qty');
+    eq((await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 1, fields: {} }], 45000, 'fld-' + RUN))).json.error, 'cart_invalid', 'missing field');
+    eq((await P.post('/orders', orderBody([{ plan_id: T.top.plan60, qty: 1, fields: { player_id: 'abc' } }], 5550, 'pat-' + RUN))).json.error, 'cart_invalid', 'pattern');
+    eq((await P.post('/orders', orderBody([{ plan_id: T.top.plan325, qty: 1, fields: { player_id: '5123456789' } }], 1, 'unap-' + RUN))).json.error, 'cart_invalid', 'unapproved plan');
   });
   await test('invalid WhatsApp numbers are rejected', async () => {
     const b = orderBody(lines, total, 'wa-' + RUN); b.customer.whatsapp = '12';
@@ -330,23 +351,23 @@ async function main() {
   await test('partial delivery via portal, then external delivery completes the order', async () => {
     const id = await idOf(orders.main.number);
     const d = (await A.get(`/orders/${id}`)).json;
-    const gpt = d.items.find((i) => i.plan_id === 'pln_chatgpt_plus_1m'), pubg = d.items.find((i) => i.plan_id === 'pln_pubg_60');
+    const gpt = d.items.find((i) => i.plan_id === T.sub.plan), pubg = d.items.find((i) => i.plan_id === T.top.plan60);
     eq((await A.post(`/orders/${id}/deliver`, { mode: 'portal', items: [{ item_id: gpt.id, details: '' }] })).status, 400, 'details required');
     const activated = Date.UTC(2026, 9, 10, 12, 0);
     const [r1, r2] = await Promise.all([1, 2].map(() => A.post(`/orders/${id}/deliver`, { mode: 'portal', items: [{ item_id: gpt.id, details: 'Activation link: https://example.com/redeem/TEST-CODE-123', activated_at: activated }] })));
     eq([r1, r2].filter((r) => r.json?.already === false).length, 1, 'one real delivery');
     let o = (await P.get(`/orders/${orders.main.number}`, orders.main.token)).json.order;
     eq(o.fulfillment_status, 'partially_delivered', 'partial');
-    const ci = o.items.find((i) => i.product_title_en.includes('ChatGPT'));
+    const ci = o.items.find((i) => i.product_title_en.includes('e2e-sub'));
     assert(ci.delivery.details.includes('TEST-CODE-123'), 'customer sees decrypted details');
     // 10 Oct 15:00 Cairo (UTC+3, DST) + 1 calendar month = 10 Nov 15:00 Cairo (UTC+2 after DST ends) = 13:00 UTC
     eq(new Date(ci.expires_at).toISOString(), '2026-11-10T13:00:00.000Z', 'expiry = activation + 1 month (Cairo calendar, across DST end)');
-    const pi = o.items.find((i) => i.product_title_en.includes('PUBG'));
+    const pi = o.items.find((i) => i.product_title_en.includes('e2e-topup'));
     eq(pi.fulfillment_status, 'processing', 'other item still processing');
     eq((await A.post(`/orders/${id}/deliver`, { mode: 'external', note: 'sent on WhatsApp', items: [{ item_id: pubg.id }] })).json.already, false, 'external');
     o = (await P.get(`/orders/${orders.main.number}`, orders.main.token)).json.order;
     eq(o.fulfillment_status, 'delivered', 'delivered');
-    eq(o.items.find((i) => i.product_title_en.includes('PUBG')).expires_at, null, 'top-up has no fabricated expiry');
+    eq(o.items.find((i) => i.product_title_en.includes('e2e-topup')).expires_at, null, 'top-up has no fabricated expiry');
     const d2 = (await A.get(`/orders/${id}`)).json;
     eq(d2.notifications.filter((n) => n.event === 'order_delivered').length, 1, 'one completion notice');
     eq(d2.notifications.filter((n) => n.event === 'item_delivered').length, 1, 'one partial notice');
@@ -416,6 +437,46 @@ async function main() {
       eq(n.status, 'pending', 'transient error → pending with backoff'); eq(n.attempts, 1, 'attempt counted');
       mock.mode = 'ok';
     });
+    await test('owner compose: any username @domain via Resend; unsafe senders rejected; logged', async () => {
+      mock.mode = 'ok'; mock.calls = [];
+      const r = await A.post('/mail/send', { from_local: 'info', to: ['someone@example.com'], subject: 'مرحباً', body: 'أهلاً\n\nرسالة اختبار https://lynto.store', lang: 'ar' });
+      eq(r.status, 200, 'send ' + r.text); eq(r.json.from, 'info@lynto.store', 'sender');
+      const b = JSON.parse(mock.calls.find((c) => c.url === '/emails').body);
+      eq(b.from, 'LYnto <info@lynto.store>', 'from header'); eq(b.reply_to, 'info@lynto.store', 'reply-to defaults to sender');
+      assert(b.html.includes('dir="rtl"') && b.html.includes('<a href="https://lynto.store"'), 'branded rtl html with linkified url');
+      eq((await A.post('/mail/send', { from_local: 'a@evil.com', to: ['x@example.com'], subject: 's', body: 'b' })).status, 400, 'sender injection rejected');
+      eq((await A.post('/mail/send', { from_local: 'orders', to: ['not-an-email'], subject: 's', body: 'b' })).status, 400, 'bad recipient rejected');
+      eq((await A.post('/mail/send', { from_local: 'orders', to: Array.from({ length: 11 }, (_, i) => 'u' + i + '@example.com'), subject: 's', body: 'b' })).status, 400, 'too many recipients');
+      mock.mode = 'fail400';
+      const f = await A.post('/mail/send', { from_local: 'contact', to: ['someone@example.com'], subject: 'x', body: 'y' });
+      eq(f.json.results[0].status, 'failed', 'provider rejection recorded');
+      mock.mode = 'ok';
+      const log = (await A.get('/mail/log')).json.emails;
+      assert(log.some((e) => e.from_addr === 'info@lynto.store' && e.status === 'sent') && log.some((e) => e.from_addr === 'contact@lynto.store' && e.status === 'failed'), 'log has both');
+    });
+    await test('support request: acknowledgement email only when the contact is an email address', async () => {
+      mock.mode = 'ok'; mock.calls = [];
+      const a = await P.post('/support', { name: 'Ack Test', contact: 'ack-' + RUN + '@example.com', topic: 'other', message: 'Hello there, need help', lang: 'ar' });
+      eq(a.status, 201, 'created');
+      await sleep(1500);
+      const sent = mock.calls.filter((c) => c.url === '/emails').map((c) => JSON.parse(c.body));
+      const ack = sent.find((m) => (m.to || []).includes('ack-' + RUN + '@example.com'));
+      assert(ack, 'acknowledgement sent'); eq(ack.from, 'LYnto <support@lynto.store>', 'from support@'); assert(ack.subject.includes(a.json.number), 'ticket number in subject');
+      mock.calls = [];
+      await P.post('/support', { name: 'Phone Test', contact: '+201000000555', topic: 'other', message: 'Call me please', lang: 'ar' });
+      await sleep(800);
+      eq(mock.calls.filter((c) => c.url === '/emails').length, 0, 'no email to a phone contact');
+    });
+    await test('unpaid-order reminder: sent once by email, never creates manual to-dos', async () => {
+      mock.mode = 'ok'; mock.calls = [];
+      const ord = (await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 1, fields: { account_email: 'rem@example.com' } }], 45000, 'rem-' + RUN, 11, { preferred_channel: 'email' }))).json;
+      const id = await idOf(ord.number);
+      d1(`UPDATE orders SET created_at = created_at - 8*3600000 WHERE id = '${id}'`);
+      await A.post('/system/run-jobs'); await A.post('/system/run-jobs');
+      const n = (await A.get(`/orders/${id}`)).json.notifications.filter((x) => x.event === 'payment_reminder');
+      eq(n.length, 1, 'exactly one reminder'); eq(n[0].status, 'sent', 'sent by email'); eq(n[0].channel, 'email', 'channel');
+      assert(mock.calls.some((c) => c.url === '/emails' && JSON.parse(c.body).subject.includes(ord.number)), 'email carries order number');
+    });
     await test('WhatsApp Cloud API: opted-in customers get template messages; signed webhooks update delivery', async () => {
       const s = (await A.get('/settings')).json.settings;
       const templates = Object.fromEntries(Object.keys(s.notifications.whatsapp_templates).map((k) => [k, { name: 'lynto_' + k, language: 'ar_EG' }]));
@@ -471,17 +532,17 @@ async function main() {
       await A.put('/settings/tracking', { meta_pixel_id: '', capi_enabled: false, meta_test_event_code: '' });
     });
     await test('Gemini helper: disabled by default, works when enabled, fails gracefully, sends only public content', async () => {
-      eq((await A.post('/ai/draft', { product_id: 'prd_claude_pro' })).json.error, 'ai_disabled', 'disabled by default');
+      eq((await A.post('/ai/draft', { product_id: T.draft.id })).json.error, 'ai_disabled', 'disabled by default');
       const s = (await A.get('/settings')).json.settings;
       await A.put('/settings/ai', { ...s.ai, gemini_enabled: true });
       await A.put('/secrets/gemini_api_key', { value: 'AIza_mock_key_for_tests' });
       mock.mode = 'ok'; mock.calls = [];
-      const r = await A.post('/ai/draft', { product_id: 'prd_claude_pro' });
+      const r = await A.post('/ai/draft', { product_id: T.draft.id });
       eq(r.status, 200, 'draft'); eq(r.json.draft.summary_en, 'Summary', 'content');
       const sent = mock.calls.find((c) => /generateContent/.test(c.url)).body;
       assert(!/@example\.com|TEST ACCOUNT|IPN-|instapay/i.test(sent), 'no customer/payment data in prompt');
       mock.mode = 'fail500';
-      const f = await A.post('/ai/draft', { product_id: 'prd_claude_pro' });
+      const f = await A.post('/ai/draft', { product_id: T.draft.id });
       eq(f.status, 502, 'graceful failure'); eq(f.json.error, 'ai_unavailable', 'code');
       mock.mode = 'ok';
       await A.put('/settings/ai', { ...s.ai, gemini_enabled: false });
@@ -508,7 +569,7 @@ async function main() {
     const uid = await idOf(unpaid.number);
     d1(`UPDATE orders SET created_at = created_at - 3*86400000 WHERE id = '${uid}'`);
     const mid = await idOf(orders.main.number);
-    d1(`UPDATE order_items SET expires_at = ${Date.now() + 86400000} WHERE order_id = '${mid}' AND plan_id = 'pln_chatgpt_plus_1m'`);
+    d1(`UPDATE order_items SET expires_at = ${Date.now() + 86400000} WHERE order_id = '${mid}' AND plan_id = '${T.sub.plan}'`);
     const r1 = (await A.post('/system/run-jobs')).json.report;
     const r2 = (await A.post('/system/run-jobs')).json.report;
     eq((await P.get(`/orders/${unpaid.number}`, unpaid.token)).json.order.payment_status, 'cancelled', 'unpaid order expired');
@@ -520,15 +581,15 @@ async function main() {
   // ------------------------------------------------------------ CSV
   await test('CSV export and validated import (dry run, then apply)', async () => {
     const csv = (await req('GET', '/api/admin/export/products.csv', { admin: true })).text;
-    assert(csv.includes('pln_chatgpt_plus_1m') && csv.includes('price_egp'), 'export');
-    const changed = csv.replace(/(pln_grammarly_1m,[^\n]*?,)(,)(proposed)/, '$1149$2$3');
+    assert(csv.includes(T.sub.plan) && csv.includes('price_egp'), 'export');
+    const changed = csv.replace(new RegExp(`(${T.top.plan325},[^\\n]*?,)(,)(proposed)`), '$1149$2$3');
     const dry = await A.post('/import/products', { csv: changed, dry_run: true });
     eq(dry.status, 200, 'dry'); eq(dry.json.applied, false, 'not applied'); eq(dry.json.errors.length, 0, JSON.stringify(dry.json.errors));
-    const broken = csv.replace('pln_chatgpt_plus_1m,', 'pln_chatgpt_plus_1m,').replace(/,450,approved,/, ',abc,approved,');
+    const broken = csv.replace(new RegExp(`(${T.sub.plan},[^\\n]*?),450,approved,`), '$1,abc,approved,');
     eq((await A.post('/import/products', { csv: broken, dry_run: true })).json.errors.length > 0, true, 'invalid price reported');
     const apply = await A.post('/import/products', { csv: changed, dry_run: false });
     eq(apply.json.applied, true, 'applied');
-    eq((await P.get('/products/chatgpt-plus')).status, 200, 'published product still published after import');
+    eq((await P.get(`/products/${T.sub.slug}`)).status, 200, 'published product still published after import');
   });
 
   // ------------------------------------------------------------ security headers & abuse limits

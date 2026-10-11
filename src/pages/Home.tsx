@@ -4,12 +4,13 @@ import { useStore } from '../lib/store';
 import { ProductCard } from '../components/ProductCard';
 import { Icon, categoryIcon } from '../components/icons';
 import { Section, Spinner, Alert } from '../components/ui';
-import { time12, weekdayName } from '../lib/format';
+import { isAlwaysOpen, time12, weekdayName } from '../lib/format';
 import { usePageTitle } from '../components/usePageTitle';
 
 export function WorkingHours({ week }: { week: Record<string, Array<{ start: string; end: string }>> }) {
-  const { lang, pick } = useI18n();
+  const { lang, pick, t } = useI18n();
   const order = [6, 0, 1, 2, 3, 4, 5];
+  if (isAlwaysOpen(week)) return <p className="mt-1 text-sm font-semibold text-text">{t('home.hours.247')}</p>;
   return (
     <ul className="divide-y divide-line/60 text-sm">
       {order.map((d) => {
@@ -31,6 +32,7 @@ export function Home() {
   usePageTitle(t('home.title'));
   const s = data?.settings;
   const methods = s?.payment_methods.length ? s.payment_methods : null;
+  const open247 = isAlwaysOpen(s?.schedule_summary.week);
 
   return (
     <>
@@ -48,7 +50,7 @@ export function Home() {
               <a href="#how" className="inline-flex min-h-12 items-center rounded-xl border border-line bg-surface-2 px-6 font-semibold hover:border-cyan/60">{t('home.cta.how')}</a>
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
-              <li className="flex items-center gap-2"><Icon.clock className="text-cyan" /> {pick('تسليم خلال ساعتين عمل بعد التأكيد', '2 working hours after verification')}</li>
+              <li className="flex items-center gap-2"><Icon.clock className="text-cyan" /> {t(open247 ? 'home.hero.sla247' : 'home.hero.sla')}</li>
               <li className="flex items-center gap-2"><Icon.shield className="text-cyan" /> {pick('مش بنطلب كلمة سر حسابك', 'We never ask for your password')}</li>
             </ul>
           </div>
@@ -120,7 +122,7 @@ export function Home() {
             </div>
             <div className="card p-6">
               <h2 className="flex items-center gap-2 text-lg font-bold"><Icon.clock className="text-cyan" /> {t('home.delivery.title')}</h2>
-              <p className="mt-4 text-sm text-muted">{s && s.sla_working_hours !== 2 ? t('home.delivery.body', { hours: s.sla_working_hours }) : t('home.delivery.body1')}</p>
+              <p className="mt-4 text-sm text-muted">{open247 && s?.sla_working_hours === 2 ? t('home.delivery.body247') : s && s.sla_working_hours !== 2 ? t('home.delivery.body', { hours: s.sla_working_hours }) : t('home.delivery.body1')}</p>
               <p className="mt-4 text-sm font-semibold">{t('home.hours')}</p>
               {s?.schedule_summary.configured ? <WorkingHours week={s.schedule_summary.week} /> : <p className="mt-1 text-sm text-dim">{t('home.hours.pending')}</p>}
             </div>

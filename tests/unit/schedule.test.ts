@@ -91,3 +91,17 @@ describe('subscription expiry', () => {
     expect(local(addCalendarPeriod(at(2026, 10, 10, 15, 0), 30, 'day', TZ))).toBe('2026-11-09 15:00');
   });
 });
+
+describe('24/7 operation', () => {
+  const always: Schedule = { timezone: TZ, week: Object.fromEntries(['0', '1', '2', '3', '4', '5', '6'].map((d) => [d, [{ start: '00:00', end: '24:00' }]])), holidays: [] };
+  it('delivery deadline is exactly 2 real hours at any time, including midnight and Fridays', () => {
+    expect(local(addWorkingMinutes(at(2026, 10, 9, 23, 30), 120, always))).toBe('2026-10-10 01:30'); // Friday night → Saturday
+    expect(addWorkingMinutes(at(2026, 10, 11, 3, 0), 120, always)! - at(2026, 10, 11, 3, 0)).toBe(2 * 3_600_000);
+  });
+  it('is exactly 2 real hours across the DST fall-back and spring-forward nights', () => {
+    const a = at(2026, 10, 29, 23, 30);
+    expect(addWorkingMinutes(a, 120, always)! - a).toBe(2 * 3_600_000);
+    const b = at(2026, 4, 23, 23, 30);
+    expect(addWorkingMinutes(b, 120, always)! - b).toBe(2 * 3_600_000);
+  });
+});

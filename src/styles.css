@@ -1,9 +1,18 @@
 @import 'tailwindcss';
-@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
-@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
-@import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
-@import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
 @import '@fontsource-variable/plus-jakarta-sans/index.css';
+/* Arabic: Cairo (Egyptian-designed) for headings, Tajawal for body text. Latin subsets keep mixed names consistent. */
+@import '@fontsource/cairo/arabic-600.css';
+@import '@fontsource/cairo/arabic-700.css';
+@import '@fontsource/cairo/arabic-800.css';
+@import '@fontsource/cairo/latin-600.css';
+@import '@fontsource/cairo/latin-700.css';
+@import '@fontsource/cairo/latin-800.css';
+@import '@fontsource/tajawal/arabic-400.css';
+@import '@fontsource/tajawal/arabic-500.css';
+@import '@fontsource/tajawal/arabic-700.css';
+@import '@fontsource/tajawal/latin-400.css';
+@import '@fontsource/tajawal/latin-500.css';
+@import '@fontsource/tajawal/latin-700.css';
 
 @theme {
   --color-ink: #050f22;
@@ -21,7 +30,7 @@
   --color-ok: #34d399;
   --color-warn: #fbbf24;
   --color-bad: #f87171;
-  --font-sans: 'Plus Jakarta Sans Variable', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  --font-sans: 'Plus Jakarta Sans Variable', 'Tajawal', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
   --radius-card: 1rem;
 }
 
@@ -33,9 +42,16 @@
     text-rendering: optimizeLegibility;
   }
   html[dir='rtl'] body {
-    font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans Variable', system-ui, Tahoma, sans-serif;
-    line-height: 1.75;
+    font-family: 'Tajawal', 'Cairo', system-ui, Tahoma, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.8;
   }
+  html[dir='rtl'] h1, html[dir='rtl'] h2, html[dir='rtl'] h3, html[dir='rtl'] h4,
+  html[dir='rtl'] .font-display, html[dir='rtl'] legend {
+    font-family: 'Cairo', 'Tajawal', system-ui, Tahoma, sans-serif;
+    line-height: 1.45;
+  }
+  html[dir='rtl'] .font-bold, html[dir='rtl'] .font-semibold, html[dir='rtl'] button { font-weight: 700; }
   body {
     min-height: 100dvh;
     background:

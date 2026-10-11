@@ -5,7 +5,7 @@ import { loadSettings, toPublicSettings } from '../lib/settings';
 import { bad, clientIp, enforceRate, ipHash, notFound, normalizePhone, now, HttpError } from '../lib/util';
 import { getPublishedProduct, listCategories, listPublishedProducts } from '../services/catalog';
 import { cancelOrder, changePaymentMethod, createOrder, customerOrderView, orderByToken, quote, submitProof } from '../services/orders';
-import { dispatchPending, ownerAlertStmts } from '../services/notifications';
+import { dispatchPending, notificationStmts, ownerAlertStmts, planSupportChannels } from '../services/notifications';
 import { newId, randomCode } from '../lib/crypto';
 
 export const publicRoutes = new Hono<AppContext>();
@@ -144,6 +144,7 @@ publicRoutes.post('/support', async (c) => {
     c.env.DB.prepare('INSERT INTO support_requests (id, number, order_id, order_verified, name, contact, topic, message, lang, ip_hash, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
       .bind(id, number, orderId, verified, d.name, d.contact, d.topic, d.message, d.lang, ih, t, t),
     ...(await ownerAlertStmts(c.env, s, null, 'owner_support_request', `owner_support:${id}`, { number, path: '/support', extra: `Support request ${number} (${d.topic}) from ${d.name}.` })),
+    ...notificationStmts(c.env, { orderId: null, audience: 'customer', event: 'support_received', channels: await planSupportChannels(c.env, s, d.contact), recipientFor: () => d.contact.trim(), dedupeBase: `support_received:${id}`, payload: { name: d.name, number } }),
   ]);
   c.executionCtx.waitUntil(dispatchPending(c.env).catch(() => {}));
   return c.json({ number }, 201);

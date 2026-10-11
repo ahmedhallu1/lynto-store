@@ -31,3 +31,12 @@ export function time12(hm: string, lang: Lang) {
   const hh = h % 12 === 0 ? 12 : h % 12;
   return `${hh}:${String(m).padStart(2, '0')} ${suffix}`;
 }
+
+/** True when every day of the week is a single full-day range (00:00–24:00), i.e. the business runs 24/7. */
+export function isAlwaysOpen(week: Record<string, Array<{ start: string; end: string }>> | undefined | null): boolean {
+  if (!week) return false;
+  return ['0', '1', '2', '3', '4', '5', '6'].every((d) => {
+    const l = week[d] ?? [];
+    return l.length === 1 && l[0].start === '00:00' && l[0].end === '24:00';
+  });
+}
