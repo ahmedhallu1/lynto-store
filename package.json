@@ -1,0 +1,48 @@
+{
+  "name": "lynto-store",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LYnto digital store — React + Vite on Cloudflare Workers, D1 and R2.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:staging": "CLOUDFLARE_ENV=staging vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "brand": "node scripts/brand-assets.mjs",
+    "cf-typegen": "wrangler types worker/worker-configuration.d.ts",
+    "db:migrate:local": "wrangler d1 migrations apply lynto-db --local",
+    "db:migrate:staging": "wrangler d1 migrations apply lynto-db-staging --remote --env staging",
+    "db:migrate:prod": "wrangler d1 migrations apply lynto-db --remote",
+    "deploy:staging": "npm run build:staging && wrangler deploy --config dist/lynto/wrangler.json --secrets-file .secrets/staging.env",
+    "deploy:prod": "npm run build && wrangler deploy --config dist/lynto/wrangler.json --secrets-file .secrets/production.env"
+  },
+  "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
+    "hono": "^4.13.13",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.63.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "sharp": "^0.35.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
+  }
+}

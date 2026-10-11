@@ -1,0 +1,57 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lynto",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Hashed bundles, fonts and brand images go straight to the asset server.
+    // Everything else (API, HTML pages that need SEO tags) runs through the Worker first.
+    "run_worker_first": ["/*", "!/assets/*", "!/brand/*", "!/favicon.png"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lynto-db",
+      "database_id": "7c36d721-f6a9-4cfa-b7f1-1485df2178a5",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "lynto-private" }],
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": {
+    "APP_ENV": "production",
+    "PUBLIC_BASE_URL": "https://lynto.store"
+  },
+  "routes": [
+    { "pattern": "lynto.store", "custom_domain": true },
+    { "pattern": "www.lynto.store", "custom_domain": true }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "env": {
+    "staging": {
+      "name": "lynto-staging",
+      "workers_dev": true,
+      "preview_urls": false,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "lynto-db-staging",
+          "database_id": "4ae3d0fc-0de0-4c38-b0db-49fc294c22fc",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "lynto-private-staging" }],
+      "triggers": { "crons": [] },
+      "vars": {
+        "APP_ENV": "staging",
+        "PUBLIC_BASE_URL": "https://lynto-staging.hdml.workers.dev"
+      },
+      "routes": [],
+      "observability": { "enabled": true, "head_sampling_rate": 1 }
+    }
+  }
+}

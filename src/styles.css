@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
+@import '@fontsource-variable/plus-jakarta-sans/index.css';
+
+@theme {
+  --color-ink: #050f22;
+  --color-bg: #061326;
+  --color-surface: #0b203a;
+  --color-surface-2: #10294a;
+  --color-line: #1c3a60;
+  --color-text: #f5f8ff;
+  --color-muted: #a9bbd6;
+  --color-dim: #7f93b3;
+  --color-blue: #168cdd;
+  --color-blue-strong: #1f7ae0;
+  --color-cyan: #20c7cf;
+  --color-teal: #2fd3b0;
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --color-bad: #f87171;
+  --font-sans: 'Plus Jakarta Sans Variable', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  --radius-card: 1rem;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  html[dir='rtl'] body {
+    font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans Variable', system-ui, Tahoma, sans-serif;
+    line-height: 1.75;
+  }
+  body {
+    min-height: 100dvh;
+    background:
+      radial-gradient(1200px 600px at 50% -200px, rgb(22 140 221 / 0.16), transparent 70%),
+      radial-gradient(800px 400px at 100% 0%, rgb(32 199 207 / 0.07), transparent 70%),
+      var(--color-bg);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-cyan);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection { background: rgb(32 199 207 / 0.35); }
+  input, select, textarea, button { font: inherit; color: inherit; }
+  /* Latin/number runs inside Arabic text keep their own direction */
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+  bdi, .bdi { unicode-bidi: isolate; }
+  /* Prices keep the page direction (Arabic: number then ج.م read right-to-left) but never mix with neighbours */
+  .price { unicode-bidi: isolate; white-space: nowrap; }
+}
+
+@layer components {
+  .card {
+    background: linear-gradient(180deg, rgb(16 41 74 / 0.85), rgb(11 32 58 / 0.85));
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+  .glow { box-shadow: 0 0 0 1px rgb(32 199 207 / 0.15), 0 20px 60px -20px rgb(22 140 221 / 0.45); }
+  .brand-gradient { background-image: linear-gradient(90deg, #1a7fe0, #20c7cf 60%, #2fd3b0); }
+  .text-gradient { background-image: linear-gradient(90deg, #4aa8ff, #20c7cf 55%, #2fd3b0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .prerender { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; color: var(--color-muted); }
+  .prerender h1 { color: var(--color-text); font-size: 1.75rem; font-weight: 700; margin-bottom: .5rem; }
+  .prerender a { color: var(--color-cyan); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
