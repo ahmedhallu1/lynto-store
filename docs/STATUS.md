@@ -12,7 +12,7 @@ Last updated: 11 Oct 2026. Legend: ✅ built & tested · 🟡 built, needs owner
 | Cron `*/5 * * * *` (notification retries, unpaid expiry, overdue alerts, renewal reminders, cleanup) | ✅ | deploy log; jobs tested via `/api/admin/system/run-jobs` |
 | Secrets via `--secrets-file` (DATA_KEY, TOKEN_SECRET, SETUP_TOKEN, GEMINI_API_KEY) | ✅ | wrangler bindings list |
 | Workers Free plan CPU budget | ✅ | measured 4–7 ms CPU per page/API/login request |
-| Source control | 🟡 | local git; GitHub push — see handoff |
+| Source control: private GitHub repo https://github.com/ahmedhallu1/lynto-store (main) | ✅ | pushed 11 Oct 2026 |
 
 ## Storefront (Arabic RTL default, English LTR at /en)
 | Item | Status |
