@@ -42,11 +42,14 @@ Two things for you: **Owner alert email** in Setup, and Cloudflare **Email Routi
 - Rule of thumb: a plan is sellable only if *approved + priced + available*; a product is public only if *published + supply validated*.
 - **Supply validation**: I marked every product *validated* because you asked me to put the catalogue live. Before you accept orders for a product, make sure you can actually supply it (see the checklist in each product's private notes). Mark unavailable ones *unavailable* or archive them.
 
-## 5. Data
+## 5. Customer data deletion
+The public page **/data-deletion** is your data deletion policy (Meta also uses it as the app's deletion-instructions URL). When a customer asks: open one of their orders → **Erase this customer's personal data** (or Admin → search). It removes name, email, WhatsApp, activation fields, receipts, delivery details and support messages for all their orders; amounts, dates and statuses stay anonymised for accounting. Orders still in review or paid-but-undelivered are skipped until finished.
+
+## 6. Data
 - Orders CSV: Orders → Export CSV. Products CSV: Products → Export CSV.
 - Database backup: see `OPERATIONS.md`.
 
-## 6. Optional integrations (Setup)
+## 7. Optional integrations (Setup)
 - **WhatsApp Cloud API**: `WHATSAPP_GUIDE.md` (step by step).
 - **Meta Pixel**: paste Pixel ID (+ CAPI token). Purchase is reported only when you approve a payment.
 - **Gemini**: tick *Enable* → "Suggest copy" in the product editor (public product info only).

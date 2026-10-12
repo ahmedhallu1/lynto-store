@@ -101,6 +101,9 @@ export function OrderDetail({ id }: { id: string }) {
               <a className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-sm" href={`mailto:${o.customer_email}?subject=${encodeURIComponent('LYnto order ' + o.number)}`}>Email</a>
             </div>
             {o.payment_status === 'verified' && o.fulfillment_status !== 'delivered' && <p className={cx('mt-3 text-sm', due.overdue ? 'text-bad font-semibold' : 'text-muted')}>Delivery deadline {when(o.delivery_due_at)} — {due.text}</p>}
+            {o.anonymized_at ? <p className="mt-3 text-xs text-warn">Personal data erased on {when(o.anonymized_at)}.</p> : (
+              <Button size="sm" variant="ghost" className="mt-3" loading={busy === 'erase'} onClick={() => { if (confirm('Erase this customer\'s personal data (name, email, WhatsApp, receipts, delivery details, support messages) from ALL their orders? Amounts and dates stay for accounting. This cannot be undone.')) act('erase', async () => { const r = await adminApi.post<{ anonymized: string[]; skipped: Array<{ number: string; reason: string }> }>('/privacy/erase', { email: o.customer_email, whatsapp: o.customer_whatsapp, confirm: true }); if (r.skipped.length) throw new Error('Erased ' + r.anonymized.length + ' order(s). Skipped: ' + r.skipped.map((s) => s.number + ' (' + s.reason + ')').join(', ')); return r; }, 'Personal data erased.'); }}>Erase this customer's personal data</Button>
+            )}
           </Card>
           <Card>
             <h2 className="font-semibold">Customer's private order link</h2>

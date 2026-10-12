@@ -214,6 +214,7 @@ const ar = {
   'support.topic.activation': 'تفعيل',
   'support.topic.replacement': 'استبدال',
   'support.topic.refund': 'استرجاع',
+  'support.topic.deletion': 'مسح بياناتي',
   'support.topic.other': 'حاجة تانية',
   'support.order': 'رقم الطلب (لو موجود)',
   'support.message': 'رسالتك',
@@ -243,6 +244,7 @@ const ar = {
   'privacy.title': 'سياسة الخصوصية',
   'terms.title': 'شروط الشراء',
   'guarantee.title': 'الضمان والاسترجاع',
+  'deletion.title': 'سياسة مسح البيانات',
   'policy.pending': 'السياسة دي بتتراجع حالياً وهتتنشر قبل فتح الطلبات.',
 
   'footer.rights': 'كل الحقوق محفوظة.',
@@ -481,6 +483,7 @@ const en: Dict = {
   'support.topic.activation': 'Activation',
   'support.topic.replacement': 'Replacement',
   'support.topic.refund': 'Refund',
+  'support.topic.deletion': 'Delete my data',
   'support.topic.other': 'Something else',
   'support.order': 'Order number (if any)',
   'support.message': 'Your message',
@@ -510,6 +513,7 @@ const en: Dict = {
   'privacy.title': 'Privacy policy',
   'terms.title': 'Purchase terms',
   'guarantee.title': 'Guarantee & refunds',
+  'deletion.title': 'Data deletion policy',
   'policy.pending': 'This policy is being finalised and will be published before ordering opens.',
 
   'footer.rights': 'All rights reserved.',

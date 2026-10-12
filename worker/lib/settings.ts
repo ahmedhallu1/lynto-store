@@ -44,7 +44,7 @@ export function toPublicSettings(s: BusinessSettings): PublicSettings {
 export const SECRET_KEYS = ['resend_api_key', 'resend_webhook_secret', 'whatsapp_access_token', 'whatsapp_app_secret', 'whatsapp_verify_token', 'meta_capi_token', 'gemini_api_key'] as const;
 export type SecretKey = (typeof SECRET_KEYS)[number];
 
-const ENV_FALLBACK: Partial<Record<SecretKey, keyof Env>> = { resend_api_key: 'RESEND_API_KEY', resend_webhook_secret: 'RESEND_WEBHOOK_SECRET', gemini_api_key: 'GEMINI_API_KEY' };
+const ENV_FALLBACK: Partial<Record<SecretKey, keyof Env>> = { resend_api_key: 'RESEND_API_KEY', resend_webhook_secret: 'RESEND_WEBHOOK_SECRET', gemini_api_key: 'GEMINI_API_KEY', whatsapp_access_token: 'WHATSAPP_ACCESS_TOKEN', whatsapp_app_secret: 'WHATSAPP_APP_SECRET', whatsapp_verify_token: 'WHATSAPP_VERIFY_TOKEN' };
 export async function getSecret(env: Env, key: SecretKey): Promise<string | null> {
   const fromEnv = ENV_FALLBACK[key] ? (env[ENV_FALLBACK[key]!] as string | undefined) : undefined;
   const row = await env.DB.prepare('SELECT ciphertext FROM secrets WHERE key = ?').bind(key).first<{ ciphertext: string }>();

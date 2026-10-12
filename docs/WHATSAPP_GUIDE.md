@@ -1,5 +1,21 @@
 # WhatsApp automation — full setup guide (LYnto)
 
+## Where we are now (12 Oct 2026)
+| Item | State |
+|---|---|
+| Meta app **LYnto Store** (ID 863290813473434), Live, privacy/terms/**data-deletion** URLs set | ✅ |
+| Webhook `https://lynto.store/api/webhooks/whatsapp` registered with Meta and verified; app subscribed to the WhatsApp account | ✅ |
+| Credentials stored as Worker secrets (access token, app secret, verify token) — never in Git | ✅ |
+| 7 utility templates (`lynto_*`, Arabic ar_EG) submitted | ⏳ Meta review (minutes–24 h) |
+| Sending path verified (Meta `hello_world` from the test number accepted) | ✅ |
+| **Real business number** registered on the Cloud API | ❌ **not yet** — your WhatsApp account is still Meta's *Test WhatsApp Business Account* with only the test number +1 555 639 7368 (reaches max 5 pre-approved recipients) |
+| Payment method on the WhatsApp account | ❌ owner (Meta billing) |
+| Business verification of "Lynto" | ❌ owner (status: pending) |
+| LYnto switch `whatsapp_enabled` | ⏸ **off on purpose** until the real number exists (otherwise customers' messages would fail) |
+| Token | 60-day user token, valid until **10 Dec 2026**. Replace it with a permanent system-user token (needs you to accept Meta's non-discrimination policy once — step 6) |
+
+**Finish in this order:** Step 4 (add the real number — Meta sends a code to that phone) → Step 5 (payment) → in LYnto *Setup → WhatsApp*: set the new **Phone number ID** and **WhatsApp Business account ID**, press **Create the 7 templates in Meta** (templates belong to a WhatsApp account, so the new account needs them too), wait for approval, press **Use approved templates**, tick **Enable WhatsApp Cloud API**, save.
+
 **What you get:** when a customer ticks *"I agree to receive order updates on WhatsApp"* at checkout, LYnto automatically sends
 WhatsApp messages for: order received · payment reminder · receipt rejected · payment confirmed · delivered (full or partial) · renewal reminder.
 Delivery details (codes/links) are **never** sent in WhatsApp — the message links to the customer's private order page.

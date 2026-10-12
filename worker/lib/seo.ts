@@ -101,6 +101,7 @@ export async function renderPage(c: Context<AppContext>): Promise<Response> {
   } else if (rest === '/support') page = simple(L.support, L.siteDesc);
   else if (rest === '/about') page = simple(L.about, L.siteDesc);
   else if (rest === '/privacy') page = simple(L.privacy, L.privacy);
+  else if (rest === '/data-deletion') page = simple(lang === 'ar' ? 'سياسة مسح البيانات' : 'Data deletion policy', lang === 'ar' ? 'إزاي تطلب مسح بياناتك الشخصية من LYnto وإيه اللي بيتمسح.' : 'How to ask LYnto to delete your personal data and what is deleted.');
   else if (rest === '/terms') page = simple(L.terms, L.terms, settings.policies.confirmed);
   else if (rest === '/guarantee') page = simple(L.guarantee, L.guarantee, settings.policies.confirmed);
   else if (rest === '/cart' || rest === '/checkout' || rest.startsWith('/order/') || path.startsWith('/admin')) page = { status: 200, index: false, title: 'LYnto', description: L.siteDesc, body: '' };
@@ -143,7 +144,7 @@ export async function sitemap(c: Context<AppContext>) {
   const products = await listPublishedProducts(c.env);
   const cats = await listCategories(c.env, products);
   const s = await loadSettings(c.env);
-  const paths = ['/', '/products', '/support', '/about', '/privacy', ...(s.policies.confirmed ? ['/terms', '/guarantee'] : []),
+  const paths = ['/', '/products', '/support', '/about', '/privacy', '/data-deletion', ...(s.policies.confirmed ? ['/terms', '/guarantee'] : []),
     ...cats.map((x) => `/c/${x.slug}`), ...products.map((p) => `/p/${p.slug}`)];
   const urls = paths.flatMap((p) => [p, `/en${p === '/' ? '' : p}`]).map((p) => `<url><loc>${base}${p}</loc></url>`).join('');
   return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=600' } });

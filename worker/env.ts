@@ -14,6 +14,9 @@ export interface Env {
   SETUP_TOKEN?: string; // one-time admin bootstrap token
   GEMINI_API_KEY?: string; // optional
   RESEND_API_KEY?: string; // optional: Resend sending key (can also be stored encrypted from Admin → Setup)
+  WHATSAPP_ACCESS_TOKEN?: string; // optional: permanent system-user token
+  WHATSAPP_APP_SECRET?: string; // optional: Meta app secret (webhook signature)
+  WHATSAPP_VERIFY_TOKEN?: string; // optional: webhook verify token
   RESEND_WEBHOOK_SECRET?: string; // optional: Resend webhook signing secret (whsec_…)
 
   // Optional Cloudflare Access hardening for /admin

@@ -101,6 +101,8 @@ async function main() {
   console.log(`LYnto E2E — ${BASE} (${LOCAL ? 'local with mock providers' : 'remote, no mocks'})`);
   const mockSrv = LOCAL ? await startMock() : null;
 
+  // warm-up: the local Vite/Miniflare proxy can drop the very first POST after a cold start
+  for (let i = 0; i < 3; i++) { await req('GET', '/healthz').catch(() => {}); await req('POST', '/api/public/cart/quote', { body: { lang: 'en', lines: [{ plan_id: 'x', qty: 1, fields: {} }] } }).catch(() => {}); }
   await test('health endpoint responds', async () => { const r = await req('GET', '/healthz'); eq(r.status, 200, 'status'); assert(r.json.ok, 'db ok'); });
 
   // ------------------------------------------------------------ admin protection
@@ -405,6 +407,29 @@ async function main() {
     eq((await P.post(`/orders/${orders.other.number}/cancel`, {}, orders.other.token)).json.already, false, 'cancel');
     eq((await P.get(`/orders/${orders.other.number}`, orders.other.token)).json.order.payment_status, 'cancelled', 'cancelled');
     eq((await P.post(`/orders/${orders.main.number}/cancel`, {}, orders.main.token)).status, 409, 'paid order');
+  });
+
+  // ------------------------------------------------------------ data deletion policy
+  await test('data erasure: personal data removed, amounts kept, link dead; orders in review are skipped', async () => {
+    const email = `erase-${RUN}@example.com`;
+    const ord = (await P.post('/orders', { ...orderBody([{ plan_id: T.sub.plan, qty: 1, fields: { account_email: 'erase-acct@example.com' } }], 45000, 'erase-' + RUN, 12), customer: { ...customer(12), email } })).json;
+    const id = await idOf(ord.number);
+    const fd = new FormData(); fd.append('file', new Blob([PNG], { type: 'image/png' }), 'r.png');
+    eq((await req('POST', `/api/public/orders/${ord.number}/proof`, { form: fd, headers: { 'x-order-key': ord.token } })).status, 201, 'proof');
+    const blocked = await A.post('/privacy/erase', { email, confirm: true });
+    eq(blocked.json.anonymized.length, 0, 'nothing erased while proof awaits review'); assert(/proof/.test(blocked.json.skipped[0].reason), 'reason given');
+    eq((await A.post('/privacy/erase', { email })).status, 400, 'confirm flag required');
+    eq((await A.post(`/orders/${id}/cancel`, { reason: 'Customer request' })).status, 200, 'cancel');
+    const done = await A.post('/privacy/erase', { email, confirm: true });
+    eq(done.json.anonymized[0], ord.number, 'erased');
+    const d = (await A.get(`/orders/${id}`)).json;
+    eq(d.order.customer_name, '[deleted]', 'name'); eq(d.order.customer_whatsapp, '[deleted]', 'whatsapp'); assert(!d.order.customer_email.includes('erase-'), 'email gone');
+    eq(d.proofs.length, 0, 'receipts removed'); eq(d.order.total_piastres, 45000, 'amount kept'); eq(d.tracking_url, null, 'link removed');
+    assert(d.items.every((i) => Object.keys(i.customer_fields).length === 0), 'activation fields removed');
+    eq((await P.get(`/orders/${ord.number}`, ord.token)).status, 404, 'private link no longer works');
+    eq((await A.post('/privacy/erase', { email, confirm: true })).json.anonymized.length, 0, 'idempotent');
+    const page = await req('GET', '/data-deletion');
+    eq(page.status, 200, 'policy page'); assert(page.text.includes('rel="canonical"'), 'seo');
   });
 
   // ------------------------------------------------------------ provider integrations (mocked)

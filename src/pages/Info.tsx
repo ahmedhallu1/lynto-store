@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
-import { Link } from '../lib/router';
+import { Link, useLocation } from '../lib/router';
 import { ApiError, api } from '../lib/api';
 import { useStore } from '../lib/store';
 import { Icon } from '../components/icons';
@@ -22,11 +22,12 @@ function Prose({ title, children }: { title: string; children: ReactNode }) {
 export function Support() {
   const { t, lang, pick } = useI18n();
   const { data } = useStore();
+  const { search } = useLocation();
   usePageTitle(t('support.title'));
   const s = data?.settings.support;
   let saved: { number: string; key: string } | null = null;
   try { saved = JSON.parse(sessionStorage.getItem('lynto_support_order') ?? 'null'); } catch { saved = null; }
-  const [form, setForm] = useState({ name: '', contact: '', topic: 'order', message: '', order_number: saved?.number ?? '', website: '' });
+  const [form, setForm] = useState({ name: '', contact: '', topic: ['order', 'payment', 'activation', 'replacement', 'refund', 'deletion', 'other'].includes(search.get('topic') ?? '') ? (search.get('topic') as string) : 'order', message: '', order_number: saved?.number ?? '', website: '' });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ kind: 'ok' | 'bad'; text: string } | null>(null);
   const submit = async (e: FormEvent) => {
@@ -75,7 +76,7 @@ export function Support() {
             <Field label={t('support.contactField')} required htmlFor="s-contact"><Input id="s-contact" dir="ltr" required minLength={5} value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} /></Field>
             <Field label={t('support.topic')} htmlFor="s-topic">
               <Select id="s-topic" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
-                {['order', 'payment', 'activation', 'replacement', 'refund', 'other'].map((k) => <option key={k} value={k}>{t(`support.topic.${k}` as any)}</option>)}
+                {['order', 'payment', 'activation', 'replacement', 'refund', 'deletion', 'other'].map((k) => <option key={k} value={k}>{t(`support.topic.${k}` as any)}</option>)}
               </Select>
             </Field>
             <Field label={t('support.order')} htmlFor="s-order"><Input id="s-order" dir="ltr" placeholder="LY-XXXXXX" value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} /></Field>
@@ -96,7 +97,7 @@ export function About() {
 }
 
 export function Privacy() {
-  const { t, pick } = useI18n();
+  const { t, pick, href } = useI18n();
   const { data } = useStore();
   const contact = data?.settings.support.email || data?.settings.support.whatsapp || '';
   return (
@@ -113,7 +114,7 @@ export function Privacy() {
           <h2>الحماية والاحتفاظ</h2>
           <p>الإيصالات محفوظة في تخزين خاص، وتفاصيل التفعيل متشفّرة، وصفحة الطلب بتتفتح بس بالرابط الخاص بيك. بنحتفظ ببيانات الطلبات للمدة اللازمة للمحاسبة والدعم.</p>
           <h2>حقوقك</h2>
-          <p>تقدر تطلب نسخة من بياناتك أو تصحيحها أو مسحها (في حدود المطلوب قانونياً للمحاسبة) من صفحة الدعم{contact ? <> أو على <span className="ltr inline-block">{contact}</span></> : null}.</p>
+          <p>تقدر تطلب نسخة من بياناتك أو تصحيحها أو مسحها. التفاصيل في <Link href={href('/data-deletion')} className="text-cyan underline">سياسة مسح البيانات</Link>{contact ? <> أو كلّمنا على <span className="ltr inline-block">{contact}</span></> : null}.</p>
         </>,
         <>
           <p>This policy explains what data we collect when you order from LYnto and how we use it.</p>
@@ -126,7 +127,80 @@ export function Privacy() {
           <h2>Security and retention</h2>
           <p>Receipts are kept in private storage, activation details are encrypted, and your order page opens only with your private link. We keep order records as long as needed for accounting and support.</p>
           <h2>Your rights</h2>
-          <p>You can request a copy, correction or deletion of your data (subject to accounting obligations) via the support page{contact ? <> or at <span className="ltr inline-block">{contact}</span></> : null}.</p>
+          <p>You can request a copy, correction or deletion of your data. Details are in the <Link href={href('/data-deletion')} className="text-cyan underline">data deletion policy</Link>{contact ? <> or contact us at <span className="ltr inline-block">{contact}</span></> : null}.</p>
+        </>,
+      )}
+    </Prose>
+  );
+}
+
+export function DataDeletion() {
+  const { t, pick, href } = useI18n();
+  const { data } = useStore();
+  const s = data?.settings.support;
+  const wa = s?.whatsapp ? `https://wa.me/${s.whatsapp.replace(/\D/g, '')}` : '';
+  return (
+    <Prose title={t('deletion.title')}>
+      {pick(
+        <>
+          <p>السياسة دي بتوضح إزاي تطلب مسح بياناتك الشخصية من LYnto، وإيه اللي بيتمسح فعلاً وإيه اللي بنحتفظ بيه ولية.</p>
+          <p className="text-xs text-dim">آخر تحديث: 12 أكتوبر 2026</p>
+          <h2>إيه اللي بنمسحه</h2>
+          <ul>
+            <li>اسمك وإيميلك ورقم الواتساب.</li>
+            <li>بيانات التفعيل اللي كتبتها وقت الطلب (زي إيميل الحساب أو رقم اللاعب).</li>
+            <li>صور إيصالات التحويل اللي رفعتها.</li>
+            <li>تفاصيل التسليم المحفوظة (أكواد أو روابط تفعيل).</li>
+            <li>رسائل الدعم اللي بعتّها، وعناوين الإيميل والأرقام في سجل الرسائل والإشعارات.</li>
+            <li>رابط طلبك الخاص بيتعطّل ومبقاش يفتح.</li>
+          </ul>
+          <h2>إيه اللي بنحتفظ بيه</h2>
+          <p>بنحتفظ بسجل الطلب نفسه <b>بشكل مجهّل</b>: رقم الطلب والمبلغ والتواريخ وحالة الدفع والتسليم، وده للمحاسبة والضرائب وحل أي نزاع. السجل ده مبقاش فيه أي حاجة تدل عليك.</p>
+          <h2>إزاي تطلب المسح</h2>
+          <ol className="list-decimal ps-5 space-y-1">
+            <li>من <Link href={href('/support?topic=deletion')} className="text-cyan underline">نموذج الدعم</Link>: اختار الموضوع "مسح بياناتي" واكتب رقم طلبك (لو عندك).</li>
+            <li>أو ابعتلنا على واتساب{s?.whatsapp ? <> <a className="text-cyan underline ltr inline-block" href={wa} target="_blank" rel="noopener noreferrer">{s.whatsapp}</a></> : null}.</li>
+            <li>أو على الإيميل{s?.email ? <> <a className="text-cyan underline ltr inline-block" href={`mailto:${s.email}`}>{s.email}</a></> : null}.</li>
+          </ol>
+          <p>عشان نحميك من أي حد يطلب مسح بياناتك، هنطلب منك تأكيد هويتك: رقم الطلب مع الإيميل أو رقم الواتساب اللي استخدمتهم، أو الطلب يتبعت من صفحة طلبك الخاصة.</p>
+          <h2>المدة</h2>
+          <ul><li>بنرد على طلبك خلال 3 أيام.</li><li>بننفّذ المسح خلال 30 يوم كحد أقصى، وغالباً أسرع من كده.</li></ul>
+          <h2>حالات بنأجّل فيها المسح</h2>
+          <p>لو عندك طلب مدفوع ولسه مسلّمناهوش بالكامل أو فيه استرجاع جاري، هنكمّله الأول وبعدين نمسح البيانات. ولو مسحنا بياناتك، مش هنقدر نراجع ضمان الاشتراكات اللي اتسلّمت، لأن بيانات التفعيل هتكون اتمسحت.</p>
+          <h2>جهات تانية</h2>
+          <p>بنستخدم Cloudflare للاستضافة، وResend لإرسال الإيميلات، وWhatsApp/Meta لرسائل الواتساب. بنمسح بياناتك من عندنا؛ وأي نسخة من الرسايل موجودة عند الجهات دي بتخضع لسياساتها، وتقدر تطلب منهم مباشرة.</p>
+          <h2>لو جيت من ميتا (فيسبوك / واتساب / إنستجرام)</h2>
+          <p>نفس الخطوات اللي فوق بتنطبق على أي بيانات وصلتنا من خلال تطبيقات ميتا، وتقدر تستخدمها كرابط تعليمات مسح البيانات.</p>
+        </>,
+        <>
+          <p>This policy explains how to ask LYnto to delete your personal data, what is deleted, and what we keep and why.</p>
+          <p className="text-xs text-dim">Last updated: 12 October 2026</p>
+          <h2>What we delete</h2>
+          <ul>
+            <li>Your name, email address and WhatsApp number.</li>
+            <li>The activation details you entered at checkout (such as an account email or player ID).</li>
+            <li>Transfer receipt images you uploaded.</li>
+            <li>Stored delivery details (codes or activation links).</li>
+            <li>Support messages you sent, and email addresses/phone numbers in our message and notification logs.</li>
+            <li>Your private order link stops working.</li>
+          </ul>
+          <h2>What we keep</h2>
+          <p>We keep the order record itself in <b>anonymised</b> form — order number, amount, dates, payment and delivery status — for accounting, tax and dispute-resolution purposes. That record no longer contains anything that identifies you.</p>
+          <h2>How to request deletion</h2>
+          <ol className="list-decimal ps-5 space-y-1">
+            <li>Use the <Link href={href('/support?topic=deletion')} className="text-cyan underline">support form</Link>: choose the topic “Delete my data” and include your order number if you have one.</li>
+            <li>Or message us on WhatsApp{s?.whatsapp ? <> <a className="text-cyan underline ltr inline-block" href={wa} target="_blank" rel="noopener noreferrer">{s.whatsapp}</a></> : null}.</li>
+            <li>Or email{s?.email ? <> <a className="text-cyan underline ltr inline-block" href={`mailto:${s.email}`}>{s.email}</a></> : null}.</li>
+          </ol>
+          <p>To protect you from someone else requesting deletion, we ask you to confirm your identity: your order number together with the email or WhatsApp number you used, or send the request from your private order page.</p>
+          <h2>Timing</h2>
+          <ul><li>We reply to your request within 3 days.</li><li>We complete the deletion within 30 days at most, usually sooner.</li></ul>
+          <h2>When we may postpone</h2>
+          <p>If you have a paid order that is not fully delivered or a refund in progress, we finish it first and then delete the data. After deletion we can no longer review the guarantee on delivered subscriptions, because the activation details will be gone.</p>
+          <h2>Other parties</h2>
+          <p>We use Cloudflare for hosting, Resend for email and WhatsApp/Meta for WhatsApp messages. We delete your data from our systems; any copy of a message held by those providers is governed by their policies, and you can ask them directly.</p>
+          <h2>If you came through Meta (Facebook / WhatsApp / Instagram)</h2>
+          <p>The same steps apply to any data that reached us through Meta apps, and this page serves as our data deletion instructions URL.</p>
         </>,
       )}
     </Prose>

@@ -10,7 +10,7 @@ import { ProductPage } from './pages/Product';
 import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { OrderPage } from './pages/Order';
-import { About, Guarantee, NotFound, Privacy, Support, Terms } from './pages/Info';
+import { About, DataDeletion, Guarantee, NotFound, Privacy, Support, Terms } from './pages/Info';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
@@ -26,6 +26,7 @@ function StoreRoutes({ path }: { path: string }) {
   if (path === '/support') return <Support />;
   if (path === '/about') return <About />;
   if (path === '/privacy') return <Privacy />;
+  if (path === '/data-deletion') return <DataDeletion />;
   if (path === '/terms') return <Terms />;
   if (path === '/guarantee') return <Guarantee />;
   return <NotFound />;

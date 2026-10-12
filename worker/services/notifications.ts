@@ -141,7 +141,7 @@ async function sendWhatsApp(env: Env, s: BusinessSettings, to: string, event: Cu
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp', to: to.replace(/^\+/, ''), type: 'template',
-      template: { name: tpl.name, language: { code: tpl.language || 'ar_EG' }, components: [{ type: 'body', parameters: params.map((p) => ({ type: 'text', text: p.slice(0, 900) })) }] },
+      template: { name: tpl.name, language: { code: tpl.language || 'ar_EG' }, components: [{ type: 'body', parameters: params.map((p) => ({ type: 'text', text: (p.replace(/\s+/g, ' ').trim() || '-').slice(0, 900) })) }] },
     }),
     signal: AbortSignal.timeout(15_000),
   });

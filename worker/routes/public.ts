@@ -111,7 +111,7 @@ publicRoutes.post('/orders/:number/cancel', async (c) => {
 const supportSchema = z.object({
   name: z.string().trim().min(2).max(80),
   contact: z.string().trim().min(5).max(120),
-  topic: z.enum(['order', 'payment', 'activation', 'replacement', 'refund', 'other']),
+  topic: z.enum(['order', 'payment', 'activation', 'replacement', 'refund', 'deletion', 'other']),
   message: z.string().trim().min(5).max(2000),
   order_number: z.string().trim().max(12).optional().default(''),
   order_key: z.string().max(80).optional().default(''),

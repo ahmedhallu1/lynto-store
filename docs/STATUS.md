@@ -74,6 +74,15 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 | Owner alert email address | ⏳ owner: Setup | — |
 | WhatsApp Cloud API | ⏳ owner accounts (WHATSAPP_GUIDE.md) | — |
 
+## Added 12 Oct 2026 (WhatsApp + privacy)
+| Item | Status |
+|---|---|
+| Data deletion policy page `/data-deletion` (AR/EN) + support topic + admin erase action (tested) | ✅ live |
+| Meta app: privacy/terms/deletion URLs saved, app Live | ✅ |
+| WhatsApp webhook verified + subscribed; 7 templates submitted | ✅ / ⏳ approval |
+| Setup → WhatsApp tools: Check connection · Create templates · Use approved templates | ✅ |
+| Real WhatsApp number (OTP), payment method, business verification, permanent token | ⏳ owner |
+
 ## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.

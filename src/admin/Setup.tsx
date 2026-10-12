@@ -293,12 +293,14 @@ function NotificationsSection({ data, s, upd, save, busy, reload, setMsg }: any)
       {n.whatsapp_enabled && <>
         <div className="grid gap-3 md:grid-cols-3">
           <Field label="Phone number ID" htmlFor="wpn"><Input id="wpn" dir="ltr" value={n.whatsapp_phone_number_id} onChange={(e) => upd('notifications', { whatsapp_phone_number_id: e.target.value.trim() })} /></Field>
+          <Field label="WhatsApp Business account ID" htmlFor="wwaba"><Input id="wwaba" dir="ltr" value={n.whatsapp_waba_id} onChange={(e) => upd('notifications', { whatsapp_waba_id: e.target.value.trim() })} /></Field>
           <Field label="Graph API version" htmlFor="wv"><Input id="wv" dir="ltr" value={n.whatsapp_api_version} onChange={(e) => upd('notifications', { whatsapp_api_version: e.target.value.trim() })} /></Field>
         </div>
         <SecretInput name="whatsapp_access_token" label="WhatsApp access token (system user)" secrets={data.secrets} onSaved={reload} setMsg={setMsg} />
         <SecretInput name="whatsapp_app_secret" label="Meta app secret (verifies webhooks)" secrets={data.secrets} onSaved={reload} setMsg={setMsg} />
         <SecretInput name="whatsapp_verify_token" label="Webhook verify token (any random string you also enter in Meta)" secrets={data.secrets} onSaved={reload} setMsg={setMsg} />
         <p className="text-xs text-dim">Webhook callback URL: <code>{data.webhooks.whatsapp}</code> (subscribe to “messages”). Business-initiated messages need approved templates. Messages go only to customers who opted in at checkout.</p>
+        <WhatsAppTools onDone={reload} />
         <div className="space-y-2">
           <p className="text-sm font-medium">Approved template per event</p>
           {Object.entries(data.whatsapp_template_guide).map(([ev, g]: any) => (
@@ -319,5 +321,35 @@ function NotificationsSection({ data, s, upd, save, busy, reload, setMsg }: any)
       </div>
       <Notice msg={testRes} />
     </Section>
+  );
+}
+
+function WhatsAppTools({ onDone }: { onDone: () => void }) {
+  const [busy, setBusy] = useState('');
+  const [out, setOut] = useState<any>(null);
+  const run = async (key: string, fn: () => Promise<any>) => {
+    setBusy(key); setOut(null);
+    try { setOut({ key, data: await fn() }); onDone(); } catch (e) { setOut({ key, error: (e as Error).message }); } finally { setBusy(''); }
+  };
+  return (
+    <div className="space-y-3 rounded-xl border border-line p-3">
+      <p className="text-sm font-medium">WhatsApp tools <span className="text-xs text-dim">(save the settings above first)</span></p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" loading={busy === 'status'} onClick={() => run('status', () => adminApi.get('/whatsapp/status'))}>Check connection</Button>
+        <Button size="sm" variant="secondary" loading={busy === 'create'} onClick={() => run('create', () => adminApi.post('/whatsapp/templates/create'))}>Create the 7 templates in Meta</Button>
+        <Button size="sm" loading={busy === 'sync'} onClick={() => run('sync', () => adminApi.post('/whatsapp/templates/sync'))}>Use approved templates</Button>
+      </div>
+      {out?.error && <Alert kind="bad">{out.error}</Alert>}
+      {out?.data && out.key === 'status' && (
+        <div className="text-sm space-y-1">
+          <p>Number: <b dir="ltr">{out.data.phone?.display_phone_number ?? '—'}</b> · name “{out.data.phone?.verified_name ?? '—'}” ({out.data.phone?.name_status ?? '—'}) · quality {out.data.phone?.quality_rating ?? '—'} · limit {out.data.phone?.messaging_limit_tier ?? '—'}</p>
+          {out.data.phone?.error && <p className="text-bad">{out.data.phone.error}</p>}
+          <p>Webhook subscription: {out.data.subscribed === null ? '—' : out.data.subscribed ? <Badge kind="ok">app subscribed</Badge> : <Badge kind="warn">not subscribed</Badge>}</p>
+          {Array.isArray(out.data.templates) && <ul className="text-xs text-muted">{out.data.templates.filter((t: any) => /^lynto_/.test(t.name)).map((t: any) => <li key={t.name + t.language} dir="ltr">{t.name} · {t.language} · <b>{t.status}</b>{t.rejected_reason && t.rejected_reason !== 'NONE' ? ' · ' + t.rejected_reason : ''}</li>)}</ul>}
+        </div>
+      )}
+      {out?.data && out.key === 'create' && <ul className="text-xs text-muted">{out.data.results.map((r: any) => <li key={r.name} dir="ltr">{r.name} — <b className={r.status === 'error' ? 'text-bad' : ''}>{r.status}</b> {r.detail}</li>)}</ul>}
+      {out?.data && out.key === 'sync' && <p className="text-sm">Now active: <b>{out.data.activated.length}</b> template(s){out.data.pending.length ? `. Waiting for Meta approval: ${out.data.pending.join(', ')}` : '.'}</p>}
+    </div>
   );
 }

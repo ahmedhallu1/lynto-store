@@ -79,6 +79,7 @@ export type BusinessSettings = {
     owner_alert_email: string;
     whatsapp_enabled: boolean;
     whatsapp_phone_number_id: string;
+    whatsapp_waba_id: string;
     whatsapp_api_version: string;
     whatsapp_templates: Record<string, { name: string; language: string }>;
   };

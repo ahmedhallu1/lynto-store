@@ -80,6 +80,7 @@ function Footer() {
             <li><Link className="hover:text-text" href={href('/terms')}>{t('terms.title')}</Link></li>
             <li><Link className="hover:text-text" href={href('/guarantee')}>{t('guarantee.title')}</Link></li>
             <li><Link className="hover:text-text" href={href('/privacy')}>{t('privacy.title')}</Link></li>
+            <li><Link className="hover:text-text" href={href('/data-deletion')}>{t('deletion.title')}</Link></li>
             <li><Link className="hover:text-text" href={href('/about')}>{t('about.title')}</Link></li>
           </ul>
         </div>

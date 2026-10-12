@@ -20,6 +20,8 @@ import { aiUsageToday, draftProductCopy, geminiKey } from '../services/gemini';
 import { sniffMime } from '../services/orders';
 import { runScheduled } from '../services/cron';
 import { composeAndSend, resendDomainStatus } from '../services/mail';
+import { eraseCustomerData } from '../services/privacy';
+import { createMissingTemplates, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
 import { enforceRate } from '../lib/util';
 
 export const admin = new Hono<AppContext>();
@@ -124,7 +126,7 @@ admin.get('/orders/:id', async (c) => {
     events: (events.results as any[]).map((e) => ({ ...e, data: parseJSON(e.data, {}) })),
     notifications: notes.results,
     payment_method: s.payments.methods.find((m) => m.id === o.payment_method_id) ?? null,
-    tracking_url: await orderLink(c.env, o),
+    tracking_url: o.access_enc === 'deleted' ? null : await orderLink(c.env, o),
     timezone: s.schedule.timezone,
   });
 });
@@ -265,6 +267,7 @@ admin.get('/notifications/:id/whatsapp', async (c) => {
   const n = await c.env.DB.prepare('SELECT * FROM notifications WHERE id = ?').bind(c.req.param('id')).first<any>();
   if (!n || !n.order_id || n.audience !== 'customer') throw notFound();
   const o = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(n.order_id).first<any>();
+  if (o.access_enc === 'deleted') throw conflict('data_erased', 'This customer\'s personal data was erased.');
   const link = await orderLink(c.env, o);
   const payload = parseJSON<any>(n.payload, {});
   const r = renderCustomer(n.event as CustomerEvent, { lang: o.lang, name: o.customer_name, number: o.number, total_piastres: o.total_piastres, link, due_at: o.delivery_due_at, reason: payload.reason, product: payload.product, expires_at: payload.expires_at, store_url: baseUrl(c.env) });
@@ -636,7 +639,7 @@ const sectionSchemas = {
   policies: z.object({ confirmed: z.boolean(), guarantee_ar: z.string().max(5000), guarantee_en: z.string().max(5000), refund_ar: z.string().max(5000), refund_en: z.string().max(5000), terms_extra_ar: z.string().max(5000), terms_extra_en: z.string().max(5000) }),
   notifications: z.object({
     email_provider: z.enum(['none', 'cloudflare', 'resend']), from_domain: z.string().trim().toLowerCase().regex(/^[a-z0-9.-]{3,80}$/), from_email: z.string().trim().toLowerCase().max(254), from_support: z.string().trim().toLowerCase().max(254), from_name: z.string().trim().max(80), reply_to: z.string().trim().max(254), owner_alert_email: z.string().trim().max(254),
-    whatsapp_enabled: z.boolean(), whatsapp_phone_number_id: z.string().trim().regex(/^\d*$/).max(30), whatsapp_api_version: z.string().regex(/^v\d+\.\d+$/),
+    whatsapp_enabled: z.boolean(), whatsapp_phone_number_id: z.string().trim().regex(/^\d*$/).max(30), whatsapp_waba_id: z.string().trim().regex(/^\d*$/).max(30).default(''), whatsapp_api_version: z.string().regex(/^v\d+\.\d+$/),
     whatsapp_templates: z.record(z.string(), z.object({ name: z.string().trim().regex(/^[a-z0-9_]*$/).max(512), language: z.string().trim().max(10) })),
   }),
   tracking: z.object({ meta_pixel_id: z.string().trim().regex(/^\d*$/).max(20), capi_enabled: z.boolean(), meta_test_event_code: z.string().trim().max(40) }),
@@ -790,6 +793,27 @@ admin.get('/mail/log/:id', async (c) => {
   const r = await c.env.DB.prepare('SELECT * FROM outbound_emails WHERE id = ?').bind(c.req.param('id')).first();
   if (!r) throw notFound();
   return c.json({ email: r });
+});
+
+// ---- WhatsApp management ----
+admin.get('/whatsapp/status', async (c) => c.json(await whatsappStatus(c.env)));
+admin.post('/whatsapp/templates/create', async (c) => {
+  const r = await createMissingTemplates(c.env);
+  await audit(c.env, actor(c), 'whatsapp_templates_created', 'integration', 'whatsapp', r);
+  return c.json(r);
+});
+admin.post('/whatsapp/templates/sync', async (c) => {
+  const r = await syncApprovedTemplates(c.env, actor(c));
+  await audit(c.env, actor(c), 'whatsapp_templates_synced', 'integration', 'whatsapp', r);
+  return c.json(r);
+});
+
+// ---- Personal data erasure (data deletion policy) ----
+admin.post('/privacy/erase', async (c) => {
+  const b = await body(c, z.object({ order_id: z.string().max(64).optional(), email: z.string().trim().max(254).optional(), whatsapp: z.string().trim().max(32).optional(), confirm: z.literal(true) }));
+  const r = await eraseCustomerData(c.env, actor(c), b);
+  await audit(c.env, actor(c), 'personal_data_erased', 'customer', b.order_id ?? '', { orders: r.anonymized, skipped: r.skipped });
+  return c.json(r);
 });
 
 admin.post('/system/run-jobs', async (c) => {
