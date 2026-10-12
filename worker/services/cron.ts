@@ -3,6 +3,7 @@ import { loadSettings } from '../lib/settings';
 import { now } from '../lib/util';
 import { dispatchPending, notificationStmts, ownerAlertStmts, planCustomerChannels, recipientFor } from './notifications';
 import { cancelOrder } from './orders';
+import { goLiveIfDue } from './whatsapp';
 
 /** Runs every 5 minutes in production. Each job is idempotent. */
 export async function runScheduled(env: Env) {
@@ -56,6 +57,10 @@ export async function runScheduled(env: Env) {
   }
   report.renewals = due.length;
 
+  // 3b) WhatsApp go-live automation (registers the number, creates templates/Flows, enables sending when Meta unblocks it).
+  const golive = await goLiveIfDue(env).catch(() => null);
+  if (golive) report.whatsapp_golive = golive.enabled ? 1 : 0;
+
   // 4) Send/retry pending notifications.
   report.dispatched = (await dispatchPending(env, { limit: 50 })).processed;
 
@@ -63,6 +68,7 @@ export async function runScheduled(env: Env) {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM admin_sessions WHERE expires_at < ?').bind(t),
     env.DB.prepare('DELETE FROM rate_limits WHERE reset_at < ?').bind(t - 86_400_000),
+    env.DB.prepare('DELETE FROM wa_inbound WHERE created_at < ?').bind(t - 7 * 86_400_000),
   ]);
   return report;
 }

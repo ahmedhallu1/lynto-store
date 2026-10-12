@@ -21,7 +21,7 @@ import { sniffMime } from '../services/orders';
 import { runScheduled } from '../services/cron';
 import { composeAndSend, resendDomainStatus } from '../services/mail';
 import { eraseCustomerData } from '../services/privacy';
-import { createMissingTemplates, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
+import { createFlows, createMissingTemplates, goLiveCheck, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
 import { enforceRate } from '../lib/util';
 
 export const admin = new Hono<AppContext>();
@@ -639,7 +639,9 @@ const sectionSchemas = {
   policies: z.object({ confirmed: z.boolean(), guarantee_ar: z.string().max(5000), guarantee_en: z.string().max(5000), refund_ar: z.string().max(5000), refund_en: z.string().max(5000), terms_extra_ar: z.string().max(5000), terms_extra_en: z.string().max(5000) }),
   notifications: z.object({
     email_provider: z.enum(['none', 'cloudflare', 'resend']), from_domain: z.string().trim().toLowerCase().regex(/^[a-z0-9.-]{3,80}$/), from_email: z.string().trim().toLowerCase().max(254), from_support: z.string().trim().toLowerCase().max(254), from_name: z.string().trim().max(80), reply_to: z.string().trim().max(254), owner_alert_email: z.string().trim().max(254),
-    whatsapp_enabled: z.boolean(), whatsapp_phone_number_id: z.string().trim().regex(/^\d*$/).max(30), whatsapp_waba_id: z.string().trim().regex(/^\d*$/).max(30).default(''), whatsapp_api_version: z.string().regex(/^v\d+\.\d+$/),
+    whatsapp_enabled: z.boolean(), whatsapp_phone_number_id: z.string().trim().regex(/^\d*$/).max(30), whatsapp_waba_id: z.string().trim().regex(/^\d*$/).max(30).default(''),
+    whatsapp_autoreply: z.boolean().default(true), whatsapp_autoactivate: z.boolean().default(true),
+    whatsapp_flows: z.object({ support: z.string().regex(/^\d*$/).max(30), track: z.string().regex(/^\d*$/).max(30), deletion: z.string().regex(/^\d*$/).max(30), request: z.string().regex(/^\d*$/).max(30) }).default({ support: '', track: '', deletion: '', request: '' }), whatsapp_api_version: z.string().regex(/^v\d+\.\d+$/),
     whatsapp_templates: z.record(z.string(), z.object({ name: z.string().trim().regex(/^[a-z0-9_]*$/).max(512), language: z.string().trim().max(10) })),
   }),
   tracking: z.object({ meta_pixel_id: z.string().trim().regex(/^\d*$/).max(20), capi_enabled: z.boolean(), meta_test_event_code: z.string().trim().max(40) }),
@@ -800,6 +802,16 @@ admin.get('/whatsapp/status', async (c) => c.json(await whatsappStatus(c.env)));
 admin.post('/whatsapp/templates/create', async (c) => {
   const r = await createMissingTemplates(c.env);
   await audit(c.env, actor(c), 'whatsapp_templates_created', 'integration', 'whatsapp', r);
+  return c.json(r);
+});
+admin.post('/whatsapp/flows/create', async (c) => {
+  const r = await createFlows(c.env, actor(c));
+  await audit(c.env, actor(c), 'whatsapp_flows_created', 'integration', 'whatsapp', r);
+  return c.json(r);
+});
+admin.post('/whatsapp/go-live', async (c) => {
+  const r = await goLiveCheck(c.env, actor(c));
+  await audit(c.env, actor(c), 'whatsapp_golive_check', 'integration', 'whatsapp', { enabled: r.enabled, blockers: r.blockers });
   return c.json(r);
 });
 admin.post('/whatsapp/templates/sync', async (c) => {

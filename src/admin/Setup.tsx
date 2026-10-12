@@ -300,6 +300,10 @@ function NotificationsSection({ data, s, upd, save, busy, reload, setMsg }: any)
         <SecretInput name="whatsapp_app_secret" label="Meta app secret (verifies webhooks)" secrets={data.secrets} onSaved={reload} setMsg={setMsg} />
         <SecretInput name="whatsapp_verify_token" label="Webhook verify token (any random string you also enter in Meta)" secrets={data.secrets} onSaved={reload} setMsg={setMsg} />
         <p className="text-xs text-dim">Webhook callback URL: <code>{data.webhooks.whatsapp}</code> (subscribe to “messages”). Business-initiated messages need approved templates. Messages go only to customers who opted in at checkout.</p>
+        <div className="grid gap-2 md:grid-cols-2">
+          <Checkbox label="Auto-reply to customers who message the number (menu, product browsing, order tracking, Flows)" checked={n.whatsapp_autoreply} onChange={(e) => upd('notifications', { whatsapp_autoreply: e.target.checked })} />
+          <Checkbox label="Switch WhatsApp notifications on automatically when Meta unblocks the number" checked={n.whatsapp_autoactivate} onChange={(e) => upd('notifications', { whatsapp_autoactivate: e.target.checked })} />
+        </div>
         <WhatsAppTools onDone={reload} />
         <div className="space-y-2">
           <p className="text-sm font-medium">Approved template per event</p>
@@ -337,6 +341,8 @@ function WhatsAppTools({ onDone }: { onDone: () => void }) {
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="secondary" loading={busy === 'status'} onClick={() => run('status', () => adminApi.get('/whatsapp/status'))}>Check connection</Button>
         <Button size="sm" variant="secondary" loading={busy === 'create'} onClick={() => run('create', () => adminApi.post('/whatsapp/templates/create'))}>Create the 7 templates in Meta</Button>
+        <Button size="sm" variant="secondary" loading={busy === 'flows'} onClick={() => run('flows', () => adminApi.post('/whatsapp/flows/create'))}>Create the 4 Flows</Button>
+        <Button size="sm" variant="secondary" loading={busy === 'golive'} onClick={() => run('golive', () => adminApi.post('/whatsapp/go-live'))}>Run go-live check</Button>
         <Button size="sm" loading={busy === 'sync'} onClick={() => run('sync', () => adminApi.post('/whatsapp/templates/sync'))}>Use approved templates</Button>
       </div>
       {out?.error && <Alert kind="bad">{out.error}</Alert>}
@@ -349,6 +355,13 @@ function WhatsAppTools({ onDone }: { onDone: () => void }) {
         </div>
       )}
       {out?.data && out.key === 'create' && <ul className="text-xs text-muted">{out.data.results.map((r: any) => <li key={r.name} dir="ltr">{r.name} — <b className={r.status === 'error' ? 'text-bad' : ''}>{r.status}</b> {r.detail}</li>)}</ul>}
+      {out?.data && out.key === 'flows' && <ul className="text-xs text-muted">{out.data.results.map((r: any) => <li key={r.name} dir="ltr">{r.name} — <b className={r.status === 'error' ? 'text-bad' : r.status === 'draft' ? 'text-warn' : ''}>{r.status}</b> {r.detail}</li>)}</ul>}
+      {out?.data && out.key === 'golive' && (
+        <div className="text-sm space-y-1">
+          <p>{out.data.enabled ? <Badge kind="ok">WhatsApp notifications are ON</Badge> : <Badge kind="warn">Not live yet</Badge>} {out.data.blockers.length > 0 && <span className="text-xs text-muted">blockers: {out.data.blockers.join(', ')}</span>}</p>
+          <ul className="text-xs text-muted">{out.data.steps.map((st: any, i: number) => <li key={i} dir="ltr"><b className={st.ok ? '' : 'text-warn'}>{st.step}</b> {st.detail}</li>)}</ul>
+        </div>
+      )}
       {out?.data && out.key === 'sync' && <p className="text-sm">Now active: <b>{out.data.activated.length}</b> template(s){out.data.pending.length ? `. Waiting for Meta approval: ${out.data.pending.join(', ')}` : '.'}</p>}
     </div>
   );

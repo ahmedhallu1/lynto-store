@@ -5,8 +5,8 @@ import { loadSettings, toPublicSettings } from '../lib/settings';
 import { bad, clientIp, enforceRate, ipHash, notFound, normalizePhone, now, HttpError } from '../lib/util';
 import { getPublishedProduct, listCategories, listPublishedProducts } from '../services/catalog';
 import { cancelOrder, changePaymentMethod, createOrder, customerOrderView, orderByToken, quote, submitProof } from '../services/orders';
-import { dispatchPending, notificationStmts, ownerAlertStmts, planSupportChannels } from '../services/notifications';
-import { newId, randomCode } from '../lib/crypto';
+import { dispatchPending } from '../services/notifications';
+import { createSupportRequest } from '../services/support';
 
 export const publicRoutes = new Hono<AppContext>();
 
@@ -136,16 +136,8 @@ publicRoutes.post('/support', async (c) => {
       orderId = (await c.env.DB.prepare('SELECT id FROM orders WHERE number = ?').bind(num).first<{ id: string }>())?.id ?? null;
     }
   }
-  const t = now();
-  const id = newId('sup');
-  const number = `SR-${randomCode(6)}`;
   const s = await loadSettings(c.env);
-  await c.env.DB.batch([
-    c.env.DB.prepare('INSERT INTO support_requests (id, number, order_id, order_verified, name, contact, topic, message, lang, ip_hash, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(id, number, orderId, verified, d.name, d.contact, d.topic, d.message, d.lang, ih, t, t),
-    ...(await ownerAlertStmts(c.env, s, null, 'owner_support_request', `owner_support:${id}`, { number, path: '/support', extra: `Support request ${number} (${d.topic}) from ${d.name}.` })),
-    ...notificationStmts(c.env, { orderId: null, audience: 'customer', event: 'support_received', channels: await planSupportChannels(c.env, s, d.contact), recipientFor: () => d.contact.trim(), dedupeBase: `support_received:${id}`, payload: { name: d.name, number } }),
-  ]);
+  const { number } = await createSupportRequest(c.env, s, { name: d.name, contact: d.contact, topic: d.topic, message: d.message, lang: d.lang, order_id: orderId, order_verified: !!verified, ip_hash: ih, via: 'web' });
   c.executionCtx.waitUntil(dispatchPending(c.env).catch(() => {}));
   return c.json({ number }, 201);
 });

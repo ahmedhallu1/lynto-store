@@ -54,7 +54,8 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   policies: { confirmed: false, ...DRAFT_POLICIES, terms_extra_ar: '', terms_extra_en: '' },
   notifications: {
     email_provider: 'none', from_domain: 'lynto.store', from_email: 'orders@lynto.store', from_support: 'support@lynto.store', from_name: 'LYnto', reply_to: '', owner_alert_email: '',
-    whatsapp_enabled: false, whatsapp_phone_number_id: '', whatsapp_waba_id: '', whatsapp_api_version: 'v25.0',
+    whatsapp_enabled: false, whatsapp_phone_number_id: '', whatsapp_waba_id: '', whatsapp_autoreply: true, whatsapp_autoactivate: true,
+    whatsapp_flows: { support: '', track: '', deletion: '', request: '' }, whatsapp_api_version: 'v25.0',
     whatsapp_templates: DEFAULT_WA_TEMPLATES,
   },
   tracking: { meta_pixel_id: '', capi_enabled: false, meta_test_event_code: '' },
@@ -93,5 +94,6 @@ export function mergeSettings(stored: Partial<BusinessSettings> | null | undefin
   }
   out.notifications.whatsapp_templates = { ...DEFAULT_WA_TEMPLATES, ...(stored.notifications?.whatsapp_templates ?? {}) };
   out.support.socials = { ...d.support.socials, ...(stored.support?.socials ?? {}) };
+  out.notifications.whatsapp_flows = { ...d.notifications.whatsapp_flows, ...(stored.notifications?.whatsapp_flows ?? {}) };
   return out as BusinessSettings;
 }

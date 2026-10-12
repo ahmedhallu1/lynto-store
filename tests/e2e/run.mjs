@@ -43,7 +43,9 @@ async function req(method, path, { body, headers = {}, admin = false, raw = fals
   let payload;
   if (form) payload = form;
   else if (body !== undefined) { h['content-type'] = 'application/json'; payload = JSON.stringify(body); }
-  const res = await fetch(BASE + path, { method, headers: h, body: payload, redirect: 'manual' });
+  let res = await fetch(BASE + path, { method, headers: h, body: payload, redirect: 'manual' });
+  // The local Vite/Miniflare proxy occasionally answers a request with a non-JSON 500 before it reaches the Worker; retry once.
+  if (LOCAL && res.status === 500 && !(res.headers.get('content-type') ?? '').includes('json')) res = await fetch(BASE + path, { method, headers: h, body: payload, redirect: 'manual' });
   const set = res.headers.getSetCookie?.() ?? [];
   for (const c of set) if (c.startsWith('__Host-lynto_admin=')) cookie = c.split(';')[0];
   if (raw) return res;
@@ -67,7 +69,7 @@ function d1(sql) {
 const PNG = Buffer.from('89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C4890000000D49444154789C6360F8CFC0F01F0005FF02FEA7E1B8C60000000049454E44AE426082', 'hex');
 
 // ---------------------------------------------------------------- mock providers
-const mock = { mode: 'ok', calls: [] };
+const mock = { mode: 'ok', calls: [], flows: [], templates: [] };
 function startMock() {
   return new Promise((resolve) => {
     const srv = http.createServer((rq, rs) => {
@@ -80,6 +82,22 @@ function startMock() {
         if (mock.mode === 'fail400') return send(400, { message: 'invalid recipient (mock)', error: { message: 'invalid (mock)' } });
         if (mock.mode === 'fail500') return send(500, { message: 'provider down (mock)' });
         if (rq.url === '/emails') return send(200, { id: 'mock-email-' + mock.calls.length });
+        const u = rq.url.split('?')[0];
+        if (/\/flows$/.test(u)) {
+          if (rq.method === 'GET') return send(200, { data: mock.flows });
+          const b = JSON.parse(body || '{}'); const fl = { id: 'flow-' + (mock.flows.length + 1), name: b.name, status: 'DRAFT' };
+          mock.flows.push(fl); return send(200, { id: fl.id, success: true, validation_errors: [] });
+        }
+        if (/\/message_templates$/.test(u)) {
+          if (rq.method === 'GET') return send(200, { data: mock.templates });
+          const b = JSON.parse(body || '{}'); mock.templates.push({ name: b.name, language: b.language, status: 'APPROVED' });
+          return send(200, { id: 't-' + mock.templates.length, status: 'APPROVED', category: b.category });
+        }
+        if (/\/flow-\d+\/publish$/.test(u)) { const fl = mock.flows.find((x) => u.includes('/' + x.id + '/')); if (fl) fl.status = 'PUBLISHED'; return send(200, { success: true }); }
+        if (rq.method === 'GET' && /\/flow-\d+$/.test(u)) return send(200, { id: u.split('/').pop(), json_version: '7.3', validation_errors: [] });
+        if (/\/subscribed_apps$/.test(u)) return send(200, { success: true, data: [{}] });
+        if (/\/register$/.test(u)) return send(200, { success: true });
+        if (rq.method === 'GET' && /^\/v[\d.]+\/\d+$/.test(u)) return send(200, { id: 'x', status: 'CONNECTED', platform_type: 'CLOUD_API', code_verification_status: 'VERIFIED', health_status: { can_send_message: 'AVAILABLE', entities: [] } });
         if (/\/messages$/.test(rq.url)) return send(200, { messages: [{ id: 'wamid.mock' + mock.calls.length }] });
         if (/\/events/.test(rq.url)) return send(200, { events_received: 1 });
         if (/generateContent/.test(rq.url)) return send(200, { candidates: [{ content: { parts: [{ text: JSON.stringify({ summary_ar: 'ملخص', summary_en: 'Summary', description_ar: 'وصف', description_en: 'Description', features_ar: ['ميزة'], features_en: ['Feature'] }) }] } }] });
@@ -532,6 +550,104 @@ async function main() {
       eq((await req('GET', '/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=verify_mock_123&hub.challenge=42')).text, '42', 'verify handshake');
       eq((await req('GET', '/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=42')).status, 403, 'bad verify token');
       await A.put('/settings/notifications', { ...s.notifications, email_provider: 'none', whatsapp_enabled: false });
+    });
+    // ------------------------------------------------------------ WhatsApp inbound: menu, browsing, tracking, Flows, opt-out, go-live
+    const waHook = async (messages, secret = 'app_secret_mock') => {
+      const payload = JSON.stringify({ object: 'whatsapp_business_account', entry: [{ id: '999111', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', metadata: { phone_number_id: '123456789' }, contacts: [{ profile: { name: 'Test Sender' }, wa_id: messages[0].from }], messages } }] }] });
+      const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+      const r = await fetch(BASE + '/api/webhooks/whatsapp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-hub-signature-256': 'sha256=' + sig }, body: payload });
+      await sleep(1500);
+      return r.status;
+    };
+    const waOut = () => mock.calls.filter((c) => /\/messages$/.test(c.url)).map((c) => JSON.parse(c.body));
+    let wmid = 0; const mid = () => 'wamid.in-' + RUN + '-' + ++wmid;
+
+    await test('WhatsApp inbound: menu on first message, no duplicate on Meta retry, bad signature rejected', async () => {
+      const cur = (await A.get('/settings')).json.settings.notifications;
+      eq((await A.put('/settings/notifications', { ...cur, email_provider: 'none', whatsapp_enabled: false, whatsapp_phone_number_id: '123456789', whatsapp_waba_id: '999111', whatsapp_autoreply: true })).status, 200, 'settings');
+      mock.mode = 'ok'; mock.calls = [];
+      const m = { id: mid(), from: '201000000700', type: 'text', text: { body: 'مرحبا' } };
+      eq(await waHook([m]), 200, 'accepted');
+      let out = waOut();
+      eq(out.length, 1, 'one reply'); eq(out[0].to, '201000000700', 'to sender'); eq(out[0].interactive.type, 'button', 'button menu');
+      eq(out[0].interactive.action.buttons.length, 3, 'three buttons');
+      assert(out[0].interactive.action.buttons.every((b) => b.reply.title.length <= 20), 'titles within WhatsApp limit');
+      eq(await waHook([m]), 200, 'retry accepted');
+      eq(waOut().length, 1, 'duplicate delivery ignored');
+      mock.calls = [];
+      eq(await waHook([{ id: mid(), from: '201000000701', type: 'text', text: { body: 'hello' } }], 'wrong-secret'), 401, 'bad signature');
+      eq(waOut().length, 0, 'nothing sent for unsigned payload');
+    });
+    await test('WhatsApp inbound: browse categories → products → product link (no catalog feature used)', async () => {
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000702', type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'menu_browse', title: 'تصفّح المنتجات' } } }]);
+      let out = waOut();
+      eq(out[0].interactive.type, 'list', 'category list');
+      const rows = out[0].interactive.action.sections[0].rows;
+      assert(rows.length >= 1 && rows.every((r) => r.id.startsWith('cat:') && r.title.length <= 24), 'category rows');
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000702', type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'cat:ai-tools', title: 'x' } } }]);
+      out = waOut();
+      const prow = out[0].interactive.action.sections[0].rows;
+      assert(prow.length >= 2 && prow.length <= 10 && prow.some((r) => r.id.startsWith('p:')) && prow.some((r) => r.id === 'all:ai-tools'), 'product rows + see-all');
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000702', type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'p:' + T.sub.slug, title: 'x' } } }]);
+      out = waOut();
+      eq(out[0].interactive.type, 'cta_url', 'cta_url');
+      assert(out[0].interactive.action.parameters.url.endsWith('/p/' + T.sub.slug), 'product url');
+    });
+    await test('WhatsApp inbound: order tracking only for the verified number; wrong sender learns nothing', async () => {
+      const ord = (await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 1, fields: { account_email: 'wa-track@example.com' } }], 45000, 'wat-' + RUN, 13))).json;
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000113', type: 'text', text: { body: 'حالة طلبي ' + ord.number } }]);
+      let t = waOut()[0].text.body;
+      assert(t.includes(ord.number) && t.includes('في انتظار التحويل'), 'status for the order owner: ' + t);
+      assert(!t.includes('wa-track@example.com') && !t.includes('#k='), 'no private data or tokens in the message');
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000999', type: 'text', text: { body: ord.number } }]);
+      t = waOut()[0].text.body;
+      assert(t.includes('مقدرناش نتحقق') && !t.includes('في انتظار التحويل'), 'impostor gets a generic reply: ' + t);
+    });
+    await test('WhatsApp Flow submissions create support tickets (verified when sender matches the order)', async () => {
+      const ord = (await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 1, fields: { account_email: 'wa-flow@example.com' } }], 45000, 'waf-' + RUN, 15))).json;
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000115', type: 'interactive', interactive: { type: 'nfm_reply', nfm_reply: { name: 'flow', body: 'Sent',
+        response_json: JSON.stringify({ flow_token: 'lynto:support:abc', kind: 'support', topic: 'activation', order_number: ord.number, message: 'الكود مش شغال معايا' }) } } }]);
+      assert(waOut()[0].text.body.includes('SR-'), 'ticket number replied');
+      const list = (await A.get('/support')).json.requests;
+      const tk = list.find((r) => r.message === 'الكود مش شغال معايا');
+      assert(tk, 'ticket stored'); eq(tk.order_verified, 1, 'verified by sender number'); eq(tk.topic, 'activation', 'topic'); eq(tk.contact, '+201000000115', 'contact');
+      await waHook([{ id: mid(), from: '201000000555', type: 'interactive', interactive: { type: 'nfm_reply', nfm_reply: { name: 'flow', body: 'Sent',
+        response_json: JSON.stringify({ flow_token: 'lynto:deletion:z', kind: 'deletion', order_number: ord.number, confirm: ['yes'] }) } } }]);
+      const del = (await A.get('/support')).json.requests.find((r) => r.topic === 'deletion' && r.contact === '+201000000555');
+      assert(del, 'deletion ticket stored'); eq(del.order_verified, 0, 'not verified for a different number');
+    });
+    await test('WhatsApp opt-out keyword stops automatic messages for that number', async () => {
+      const ord = (await P.post('/orders', orderBody([{ plan_id: T.sub.plan, qty: 1, fields: { account_email: 'wa-stop@example.com' } }], 45000, 'was-' + RUN, 16, { whatsapp_optin: true }))).json;
+      const id = await idOf(ord.number);
+      eq((await A.get('/orders/' + id)).json.order.whatsapp_optin, 1, 'opted in');
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000116', type: 'text', text: { body: 'STOP' } }]);
+      eq((await A.get('/orders/' + id)).json.order.whatsapp_optin, 0, 'opted out');
+      assert(waOut()[0].text.body.length > 5, 'confirmation sent');
+    });
+    await test('WhatsApp tools: Flows are created once; go-live check registers, subscribes, syncs templates and enables sending', async () => {
+      const a = await A.post('/whatsapp/flows/create');
+      eq(a.status, 200, 'create ' + a.text); eq(a.json.results.filter((r) => r.status === 'created').length, 4, 'four flows');
+      eq((await A.post('/whatsapp/flows/create')).json.results.filter((r) => r.status === 'exists').length, 4, 'idempotent');
+      const st = (await A.get('/settings')).json.settings.notifications;
+      assert(st.whatsapp_flows.support && st.whatsapp_flows.track && st.whatsapp_flows.deletion && st.whatsapp_flows.request, 'flow ids saved');
+      mock.calls = [];
+      await waHook([{ id: mid(), from: '201000000703', type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'menu_track', title: 'تتبع طلبي' } } }]);
+      const fl = waOut()[0];
+      eq(fl.interactive.type, 'flow', 'flow message'); eq(fl.interactive.action.parameters.flow_id, st.whatsapp_flows.track, 'track flow id'); assert(fl.interactive.action.parameters.flow_cta.length <= 20, 'cta length');
+      const g = await A.post('/whatsapp/go-live');
+      eq(g.status, 200, 'go-live ' + g.text);
+      assert(g.json.enabled === true && g.json.blockers.length === 0, 'enabled automatically: ' + JSON.stringify(g.json));
+      assert(['subscribe_app', 'templates', 'flows', 'sync_templates', 'enable'].every((k) => g.json.steps.some((x) => x.step === k && x.ok)), 'all steps ok');
+      const after = (await A.get('/settings')).json.settings.notifications;
+      eq(after.whatsapp_enabled, true, 'switched on'); eq(after.whatsapp_templates.order_received.name, 'lynto_order_received', 'template activated');
+      await A.put('/settings/notifications', { ...after, whatsapp_enabled: false });
     });
     await test('Meta Purchase is sent once, only after verification, only with consent', async () => {
       await A.put('/settings/tracking', { meta_pixel_id: '1234567890', capi_enabled: true, meta_test_event_code: 'TEST123' });

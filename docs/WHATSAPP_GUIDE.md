@@ -3,18 +3,38 @@
 ## Where we are now (12 Oct 2026)
 | Item | State |
 |---|---|
-| Meta app **LYnto Store** (ID 863290813473434), Live, privacy/terms/**data-deletion** URLs set | ✅ |
-| Webhook `https://lynto.store/api/webhooks/whatsapp` registered with Meta and verified; app subscribed to the WhatsApp account | ✅ |
-| Credentials stored as Worker secrets (access token, app secret, verify token) — never in Git | ✅ |
-| 7 utility templates (`lynto_*`, Arabic ar_EG) submitted | ⏳ Meta review (minutes–24 h) |
-| Sending path verified (Meta `hello_world` from the test number accepted) | ✅ |
-| **Real business number** registered on the Cloud API | ❌ **not yet** — your WhatsApp account is still Meta's *Test WhatsApp Business Account* with only the test number +1 555 639 7368 (reaches max 5 pre-approved recipients) |
-| Payment method on the WhatsApp account | ❌ owner (Meta billing) |
-| Business verification of "Lynto" | ❌ owner (status: pending) |
-| LYnto switch `whatsapp_enabled` | ⏸ **off on purpose** until the real number exists (otherwise customers' messages would fail) |
-| Token | 60-day user token, valid until **10 Dec 2026**. Replace it with a permanent system-user token (needs you to accept Meta's non-discrimination policy once — step 6) |
+| Meta app **LYnto Store**, Live; privacy / terms / **data-deletion** URLs set | ✅ |
+| **Permanent system-user token** (never expires), stored as a Worker secret; system user has full access to both LYnto WhatsApp accounts | ✅ |
+| Real number **+20 10 97293693** (phone ID 1396014003589555, account 1896785387957950): OTP **verified** | ✅ |
+| Webhook `https://lynto.store/api/webhooks/whatsapp` verified; subscribed to messages, template status, account updates | ✅ |
+| 7 customer-message templates (Arabic, utility) created on the real account | ⏳ Meta review (approval is picked up automatically) |
+| 4 WhatsApp **Flows** (support · track order · delete my data · request a product) created, validated by Meta (Flow JSON 7.3) | ⏳ saved as **drafts** — Meta refuses to publish until the business is verified |
+| Auto-reply bot (menu · browse products · order tracking · Flows · STOP) | ✅ built & tested; goes live with the number |
+| **Meta business verification of "Lynto"** | ⏳ **"In review" at Meta** — the only real blocker |
+| Number registration on the Cloud API | ⏳ blocked by the same verification ("Unverified WABA") — done automatically afterwards |
+| Payment method on the WhatsApp account | ❌ owner (Meta billing) — needed to send templates |
+| LYnto `whatsapp_enabled` | ⏸ switches on **automatically** when the number is connected, sending is allowed and the core templates are approved |
 
-**Finish in this order:** Step 4 (add the real number — Meta sends a code to that phone) → Step 5 (payment) → in LYnto *Setup → WhatsApp*: set the new **Phone number ID** and **WhatsApp Business account ID**, press **Create the 7 templates in Meta** (templates belong to a WhatsApp account, so the new account needs them too), wait for approval, press **Use approved templates**, tick **Enable WhatsApp Cloud API**, save.
+### What happens automatically once Meta approves the business
+Every 5 minutes LYnto's scheduler runs a *go-live check* (at most every 30 minutes): it registers the number with the stored PIN, re-subscribes the app, creates any missing templates, retries publishing the Flows, activates every approved template, and — if sending is allowed — **switches WhatsApp notifications on** and writes an audit entry. You can also press **Admin → Setup → WhatsApp tools → Run go-live check** to see exactly which step is blocking.
+
+### Why there is no "WhatsApp catalog"
+Meta's Commerce Policy **prohibits digital subscriptions/accounts and virtual currency** and **restricts gift cards** in catalogs, shops and WhatsApp commerce features. Uploading this catalogue to WhatsApp Manager would likely get items rejected and could put your WhatsApp account's commerce features (or the account) at risk, so it was deliberately not done. Instead:
+- Every product has a branded **product card image** on the website and in link previews (`/catalog/<product>.jpg`).
+- The bot lets customers **browse products inside the chat** (categories → products → link with card image) without using Meta's catalog feature.
+- Keep WhatsApp messages transactional (orders, payments, delivery, support). Do not run promotional campaigns for these product types through the API.
+
+### The bot (what customers can do)
+| Customer sends | Reply |
+|---|---|
+| Any greeting / unknown text | Menu: *Browse products · Track my order · Contact us* (at most once per 10 minutes) |
+| *Browse* → category → product | Lists with prices → product card + "Open product" link |
+| *Track my order* / an order number like `LY-K7M2QX` | Status (payment, delivery, due time) — **only** if the sender's number (or the email in the Flow) matches the order. No links/tokens/secrets are sent |
+| *Contact us* Flow | Creates a support ticket (verified if the number matches the order) + your Admin inbox |
+| *Delete my data* Flow | Creates a deletion ticket for you to review and erase from the order page |
+| *Request a product* Flow | Ticket "Product request via WhatsApp" |
+| `STOP` / إيقاف / إلغاء | Turns off automatic WhatsApp updates for that number |
+Human chat: the bot always includes your normal support WhatsApp link for urgent cases (the API number itself has no chat inbox).
 
 **What you get:** when a customer ticks *"I agree to receive order updates on WhatsApp"* at checkout, LYnto automatically sends
 WhatsApp messages for: order received · payment reminder · receipt rejected · payment confirmed · delivered (full or partial) · renewal reminder.

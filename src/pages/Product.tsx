@@ -88,7 +88,7 @@ export function ProductPage({ slug }: { slug: string }) {
       </nav>
 
       <div className="mb-6 flex items-start gap-4">
-        <ProductMark text={product.icon_text} accent={product.accent} image={product.image_url} size={72} label={title} />
+        <ProductMark text={product.icon_text} accent={product.accent} image={product.image_url} slug={product.slug} size={96} label={title} />
         <div>
           {product.brand && <p className="text-sm text-dim ltr inline-block">{product.brand}</p>}
           <h1 className="text-2xl font-bold sm:text-3xl"><bdi>{title}</bdi></h1>

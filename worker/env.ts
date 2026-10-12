@@ -17,6 +17,7 @@ export interface Env {
   WHATSAPP_ACCESS_TOKEN?: string; // optional: permanent system-user token
   WHATSAPP_APP_SECRET?: string; // optional: Meta app secret (webhook signature)
   WHATSAPP_VERIFY_TOKEN?: string; // optional: webhook verify token
+  WHATSAPP_PIN?: string; // optional: 6-digit two-step PIN used when registering the number on the Cloud API
   RESEND_WEBHOOK_SECRET?: string; // optional: Resend webhook signing secret (whsec_…)
 
   // Optional Cloudflare Access hardening for /admin

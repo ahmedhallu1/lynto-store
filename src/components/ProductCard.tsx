@@ -10,7 +10,7 @@ export function ProductCard({ p }: { p: PublicProduct }) {
   return (
     <Link href={href(`/p/${p.slug}`)} className="card group flex flex-col gap-4 p-4 transition hover:border-cyan/60 hover:-translate-y-0.5">
       <div className="flex items-start gap-3">
-        <ProductMark text={p.icon_text} accent={p.accent} image={p.image_url} label={title} />
+        <ProductMark text={p.icon_text} accent={p.accent} image={p.image_url} slug={p.slug} label={title} />
         <div className="min-w-0">
           <p className="text-xs text-dim">{pick(p.category.name_ar, p.category.name_en)}</p>
           <h3 className="font-semibold leading-snug text-text group-hover:text-cyan"><bdi>{title}</bdi></h3>

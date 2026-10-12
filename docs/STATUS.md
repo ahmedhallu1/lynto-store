@@ -83,6 +83,17 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 | Setup → WhatsApp tools: Check connection · Create templates · Use approved templates | ✅ |
 | Real WhatsApp number (OTP), payment method, business verification, permanent token | ⏳ owner |
 
+## Added 12 Oct 2026 (WhatsApp build-out)
+| Item | Status |
+|---|---|
+| Permanent token + real account/number wired; webhook fields extended | ✅ |
+| WhatsApp auto-reply bot: menu, browse, tracking, Flows, STOP (E2E tested with signed webhooks) | ✅ |
+| 4 Flows (Flow JSON 7.3) created & validated; publish blocked by Meta integrity (business verification) | ⏳ |
+| Go-live automation (register → templates → flows → sync → enable) in cron | ✅ |
+| Product card images (74) for site + link previews | ✅ |
+| WhatsApp *catalog* | ⛔ intentionally not created (Meta Commerce Policy) |
+| Meta business verification of Lynto | ⏳ Meta review |
+
 ## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.

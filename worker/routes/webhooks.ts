@@ -3,6 +3,7 @@ import type { AppContext } from '../env';
 import { getSecret } from '../lib/settings';
 import { fromB64, hmacHex, timingSafeEqual, b64url } from '../lib/crypto';
 import { now } from '../lib/util';
+import { handleWhatsAppWebhook } from '../services/whatsapp-inbound';
 
 export const webhooks = new Hono<AppContext>();
 
@@ -36,6 +37,7 @@ webhooks.post('/whatsapp', async (c) => {
       }
     }
   }
+  c.executionCtx.waitUntil(handleWhatsAppWebhook(c.env, payload).catch((e) => console.error(JSON.stringify({ level: 'error', job: 'wa_webhook', message: String(e?.message ?? e).slice(0, 200) }))));
   return c.text('ok');
 });
 

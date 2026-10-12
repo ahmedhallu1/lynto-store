@@ -116,8 +116,10 @@ export function CopyButton({ value, label, copiedLabel, className }: { value: st
 }
 
 /** Brand-safe monogram tile used when a product has no uploaded image (we don't reuse third-party logos). */
-export function ProductMark({ text, accent, image, size = 56, label }: { text: string; accent: string; image?: string | null; size?: number; label: string }) {
-  if (image) return <img src={image} alt={label} width={size} height={size} className="rounded-2xl object-cover bg-surface-2" style={{ width: size, height: size }} loading="lazy" />;
+export function ProductMark({ text, accent, image, slug, size = 56, label }: { text: string; accent: string; image?: string | null; slug?: string; size?: number; label: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = image ?? (slug && !failed ? `/catalog/${slug}${size <= 120 ? '-s' : ''}.jpg` : null);
+  if (src && !(failed && !image)) return <img src={src} alt={label} width={size} height={size} className="rounded-2xl object-cover bg-surface-2" style={{ width: size, height: size }} loading="lazy" onError={() => setFailed(true)} />;
   return (
     <div
       aria-hidden

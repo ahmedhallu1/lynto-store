@@ -83,13 +83,18 @@ export async function renderPage(c: Context<AppContext>): Promise<Response> {
       const summary = (lang === 'ar' ? p.summary_ar : p.summary_en) || (lang === 'ar' ? p.description_ar : p.description_en).slice(0, 160);
       const features = lang === 'ar' ? p.features_ar : p.features_en;
       const prices = p.plans.map((pl) => pl.price_piastres);
+      let cardUrl: string | undefined;
+      if (!p.image_url) {
+        const r = await env.ASSETS.fetch(new Request(`${base}/catalog/${p.slug}.jpg`, { method: 'HEAD' })).catch(() => null);
+        if (r?.ok && (r.headers.get('content-type') ?? '').startsWith('image/')) cardUrl = `${base}/catalog/${p.slug}.jpg`;
+      }
       page = {
-        status: 200, index: true, title: `${title} | LYnto`, description: summary, image: p.image_url ? base + p.image_url : undefined,
+        status: 200, index: true, title: `${title} | LYnto`, description: summary, image: p.image_url ? base + p.image_url : cardUrl,
         body: `<h1>${esc(title)}</h1><p>${esc(lang === 'ar' ? p.description_ar : p.description_en)}</p><ul>${features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>`
           + `<ul>${p.plans.map((pl) => `<li>${esc(lang === 'ar' ? pl.name_ar : pl.name_en)} — ${esc(formatEGP(pl.price_piastres, lang))}</li>`).join('')}</ul>`,
         jsonld: [{
           '@context': 'https://schema.org', '@type': 'Product', name: p.title_en, description: p.description_en, brand: p.brand ? { '@type': 'Brand', name: p.brand } : undefined,
-          image: p.image_url ? base + p.image_url : `${base}/brand/og-image.jpg`, sku: p.id,
+          image: p.image_url ? base + p.image_url : cardUrl ?? `${base}/brand/og-image.jpg`, sku: p.id,
           offers: { '@type': 'AggregateOffer', priceCurrency: 'EGP', lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2), offerCount: prices.length,
             availability: p.available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', url: `${base}${prefix}/p/${p.slug}` },
         }, { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [

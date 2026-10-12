@@ -80,6 +80,9 @@ export type BusinessSettings = {
     whatsapp_enabled: boolean;
     whatsapp_phone_number_id: string;
     whatsapp_waba_id: string;
+    whatsapp_autoreply: boolean;
+    whatsapp_autoactivate: boolean;
+    whatsapp_flows: { support: string; track: string; deletion: string; request: string };
     whatsapp_api_version: string;
     whatsapp_templates: Record<string, { name: string; language: string }>;
   };
