@@ -18,7 +18,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
         size === 'lg' && 'min-h-12 px-6 text-lg',
         variant === 'primary' && 'brand-gradient text-white shadow-lg shadow-blue/20 hover:brightness-110',
         variant === 'secondary' && 'bg-surface-2 border border-line text-text hover:border-cyan/60',
-        variant === 'ghost' && 'text-muted hover:text-text hover:bg-white/5',
+        variant === 'ghost' && 'text-muted hover:text-text hover:bg-text/5',
         variant === 'danger' && 'bg-bad/15 text-bad border border-bad/40 hover:bg-bad/25',
         className,
       )}
@@ -66,8 +66,8 @@ export function Card({ className, children, ...rest }: { className?: string; chi
 }
 
 const tone = {
-  neutral: 'bg-white/5 text-muted border-line',
-  info: 'bg-blue/15 text-[#7cc4ff] border-blue/40',
+  neutral: 'bg-text/5 text-muted border-line',
+  info: 'bg-blue/15 text-blue border-blue/40',
   ok: 'bg-ok/12 text-ok border-ok/40',
   warn: 'bg-warn/12 text-warn border-warn/40',
   bad: 'bg-bad/12 text-bad border-bad/40',

@@ -139,7 +139,7 @@ function Shell({ status, onSignOut }: { status: Status; onSignOut: () => void })
         </div>
         <nav className={cx('px-2 pb-3 lg:block', open ? 'block' : 'hidden')} aria-label="Admin">
           {NAV.map((n) => (
-            <Link key={n.to} href={n.to} className={cx('block rounded-lg px-3 py-2.5 text-sm font-medium', active(n.to) ? 'bg-cyan/10 text-cyan' : 'text-muted hover:text-text hover:bg-white/5')}>{n.label}</Link>
+            <Link key={n.to} href={n.to} className={cx('block rounded-lg px-3 py-2.5 text-sm font-medium', active(n.to) ? 'bg-cyan/10 text-cyan' : 'text-muted hover:text-text hover:bg-text/5')}>{n.label}</Link>
           ))}
           <div className="mt-4 border-t border-line px-3 pt-4 text-xs text-dim">
             <p className="truncate">{status.admin?.email}</p>

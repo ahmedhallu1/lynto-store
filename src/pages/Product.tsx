@@ -146,7 +146,12 @@ export function ProductPage({ slug }: { slug: string }) {
                 ))}
               </div>
             </fieldset>
-            {plan && pick(plan.notes_ar, plan.notes_en) && <p className="mt-3 text-sm text-muted">{pick(plan.notes_ar, plan.notes_en)}</p>}
+            {plan && pick(plan.notes_ar, plan.notes_en) && (
+              <div className="mt-3 rounded-xl border border-cyan/30 bg-cyan/5 p-3">
+                <p className="text-xs font-semibold text-cyan">{pick('تفاصيل الخطة اللي اخترتها', 'About the plan you selected')}</p>
+                <p className="mt-1 text-sm leading-relaxed text-text/90">{pick(plan.notes_ar, plan.notes_en)}</p>
+              </div>
+            )}
 
             {plan && plan.max_qty > 1 && (
               <div className="mt-4 max-w-40">

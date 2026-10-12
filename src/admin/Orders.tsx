@@ -40,7 +40,7 @@ export function OrdersList() {
               {data.orders.map((o) => {
                 const d = dueLabel(o.delivery_due_at, data.now);
                 return (
-                  <tr key={o.id} className="border-t border-line/60 hover:bg-white/[0.03] cursor-pointer" onClick={() => navigate(`/admin/orders/${o.id}`)}>
+                  <tr key={o.id} className="border-t border-line/60 hover:bg-text/[0.04] cursor-pointer" onClick={() => navigate(`/admin/orders/${o.id}`)}>
                     <td className="p-3"><Link href={`/admin/orders/${o.id}`} className="font-mono text-cyan">{o.number}</Link></td>
                     <td className="p-3">{o.customer_name}<div className="text-xs text-dim">{o.customer_whatsapp}</div></td>
                     <td className="p-3 font-semibold">{egp(o.total_piastres)}</td>

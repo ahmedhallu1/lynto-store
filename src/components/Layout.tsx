@@ -5,14 +5,37 @@ import { useCart } from '../lib/cart';
 import { useStore } from '../lib/store';
 import { getConsent, initPixel, setConsent } from '../lib/pixel';
 import { Icon } from './icons';
+import { SocialLinks } from './social';
+import { nextThemePref, setThemePref, useThemePref } from '../lib/theme';
 import { Button, cx } from './ui';
 
 export function Logo({ className }: { className?: string }) {
+  const cls = cx('h-9 w-auto sm:h-10', className);
   return (
-    <picture>
-      <source srcSet="/brand/lynto-lockup.webp" type="image/webp" />
-      <img src="/brand/lynto-lockup.png" alt="LYnto" width={160} height={46} className={cx('h-9 w-auto sm:h-10', className)} />
-    </picture>
+    <>
+      <picture className="logo-dark">
+        <source srcSet="/brand/lynto-lockup.webp" type="image/webp" />
+        <img src="/brand/lynto-lockup.png" alt="LYnto" width={160} height={46} className={cls} />
+      </picture>
+      <picture className="logo-light">
+        <source srcSet="/brand/lynto-lockup-light.webp" type="image/webp" />
+        <img src="/brand/lynto-lockup-light.png" alt="" aria-hidden width={160} height={46} className={cls} />
+      </picture>
+    </>
+  );
+}
+
+function ThemeToggle() {
+  const { pick } = useI18n();
+  const pref = useThemePref();
+  const next = nextThemePref(pref);
+  const names = { auto: pick('تلقائي (حسب جهازك)', 'Auto (follows your device)'), light: pick('فاتح', 'Light'), dark: pick('داكن', 'Dark') };
+  const IconFor = pref === 'light' ? Icon.sun : pref === 'dark' ? Icon.moon : Icon.contrast;
+  return (
+    <button type="button" onClick={() => setThemePref(next)} title={`${pick('المظهر', 'Theme')}: ${names[pref]}`} aria-label={`${pick('المظهر', 'Theme')}: ${names[pref]}. ${pick('اضغط للتغيير', 'Press to change')}`}
+      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-muted hover:text-text">
+      <IconFor />
+    </button>
   );
 }
 
@@ -39,9 +62,11 @@ function Header() {
         </nav>
         <div className="ms-auto flex items-center gap-1">
           <a href={switchLangPath(pathname, lang === 'ar' ? 'en' : 'ar') + window.location.search} hrefLang={lang === 'ar' ? 'en' : 'ar'} lang={lang === 'ar' ? 'en' : 'ar'}
+            onClick={() => { try { localStorage.setItem('lynto_lang', lang === 'ar' ? 'en' : 'ar'); } catch { /* ignore */ } }}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-muted hover:text-text">
             <Icon.globe /> <span>{t('nav.lang')}</span>
           </a>
+          <ThemeToggle />
           <Link href={href('/cart')} className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-muted hover:text-text" aria-label={`${t('nav.cart')} (${count})`}>
             <Icon.cart />
             {count > 0 && <span className="absolute top-1 end-0.5 grid min-w-5 h-5 place-items-center rounded-full bg-cyan px-1 text-[11px] font-bold text-ink ltr">{count}</span>}
@@ -66,7 +91,6 @@ function Footer() {
   const { t, href, lang, pick } = useI18n();
   const { data } = useStore();
   const support = data?.settings.support;
-  const socials = support ? Object.entries(support.socials).filter(([, v]) => v && /^https:\/\//.test(v)) : [];
   return (
     <footer className="mt-16 border-t border-line/70 bg-ink/40">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
@@ -91,11 +115,7 @@ function Footer() {
             {support?.email && <li><a className="hover:text-text inline-flex items-center gap-2" href={`mailto:${support.email}`}><Icon.mail width={16} height={16} /><span className="ltr">{support.email}</span></a></li>}
             <li><Link className="hover:text-text" href={href('/support')}>{t('support.form')}</Link></li>
           </ul>
-          {socials.length > 0 && (
-            <ul className="mt-3 flex flex-wrap gap-2 text-xs">
-              {socials.map(([k, v]) => <li key={k}><a href={v} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-line px-2.5 py-1.5 capitalize text-muted hover:text-text">{k}</a></li>)}
-            </ul>
-          )}
+          <SocialLinks socials={support?.socials} className="mt-4" />
         </div>
       </div>
       <div className="border-t border-line/60 py-5 text-center text-xs text-dim px-4">

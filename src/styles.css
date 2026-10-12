@@ -34,6 +34,69 @@
   --radius-card: 1rem;
 }
 
+/* Theme tokens that are not Tailwind colours. Dark is the base; light follows the device unless the visitor picked a theme. */
+:root {
+  color-scheme: dark;
+  --glow-a: rgb(22 140 221 / 0.16);
+  --glow-b: rgb(32 199 207 / 0.07);
+  --card-a: rgb(16 41 74 / 0.85);
+  --card-b: rgb(11 32 58 / 0.85);
+  --card-shadow: none;
+  --sel: rgb(32 199 207 / 0.35);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-ink: #ffffff;
+  --color-bg: #f3f6fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #eaf0f8;
+  --color-line: #d2dcea;
+  --color-text: #0b1a30;
+  --color-muted: #435676;
+  --color-dim: #62759a;
+  --color-blue: #1272c4;
+  --color-blue-strong: #0f64ad;
+  --color-cyan: #0a8790;
+  --color-teal: #0c8a6e;
+  --color-ok: #0c7a52;
+  --color-warn: #9a5a00;
+  --color-bad: #b42318;
+  --glow-a: rgb(22 140 221 / 0.10);
+  --glow-b: rgb(32 199 207 / 0.06);
+  --card-a: rgb(255 255 255 / 0.96);
+  --card-b: rgb(247 250 254 / 0.96);
+  --card-shadow: 0 1px 2px rgb(11 26 48 / 0.05), 0 8px 24px -12px rgb(11 26 48 / 0.12);
+  --sel: rgb(10 135 144 / 0.25);
+  --tg-a: #1272c4; --tg-b: #0a8790; --tg-c: #0c8a6e;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --color-ink: #ffffff;
+    --color-bg: #f3f6fb;
+    --color-surface: #ffffff;
+    --color-surface-2: #eaf0f8;
+    --color-line: #d2dcea;
+    --color-text: #0b1a30;
+    --color-muted: #435676;
+    --color-dim: #62759a;
+    --color-blue: #1272c4;
+    --color-blue-strong: #0f64ad;
+    --color-cyan: #0a8790;
+    --color-teal: #0c8a6e;
+    --color-ok: #0c7a52;
+    --color-warn: #9a5a00;
+    --color-bad: #b42318;
+    --glow-a: rgb(22 140 221 / 0.10);
+    --glow-b: rgb(32 199 207 / 0.06);
+    --card-a: rgb(255 255 255 / 0.96);
+    --card-b: rgb(247 250 254 / 0.96);
+    --card-shadow: 0 1px 2px rgb(11 26 48 / 0.05), 0 8px 24px -12px rgb(11 26 48 / 0.12);
+    --sel: rgb(10 135 144 / 0.25);
+  --tg-a: #1272c4; --tg-b: #0a8790; --tg-c: #0c8a6e;
+  }
+}
+
 @layer base {
   html {
     background: var(--color-bg);
@@ -55,8 +118,8 @@
   body {
     min-height: 100dvh;
     background:
-      radial-gradient(1200px 600px at 50% -200px, rgb(22 140 221 / 0.16), transparent 70%),
-      radial-gradient(800px 400px at 100% 0%, rgb(32 199 207 / 0.07), transparent 70%),
+      radial-gradient(1200px 600px at 50% -200px, var(--glow-a), transparent 70%),
+      radial-gradient(800px 400px at 100% 0%, var(--glow-b), transparent 70%),
       var(--color-bg);
     font-family: var(--font-sans);
     line-height: 1.6;
@@ -66,7 +129,7 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
-  ::selection { background: rgb(32 199 207 / 0.35); }
+  ::selection { background: var(--sel); }
   input, select, textarea, button { font: inherit; color: inherit; }
   /* Latin/number runs inside Arabic text keep their own direction */
   .ltr { direction: ltr; unicode-bidi: isolate; }
@@ -77,16 +140,25 @@
 
 @layer components {
   .card {
-    background: linear-gradient(180deg, rgb(16 41 74 / 0.85), rgb(11 32 58 / 0.85));
+    background: linear-gradient(180deg, var(--card-a), var(--card-b));
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
+    box-shadow: var(--card-shadow);
   }
   .glow { box-shadow: 0 0 0 1px rgb(32 199 207 / 0.15), 0 20px 60px -20px rgb(22 140 221 / 0.45); }
   .brand-gradient { background-image: linear-gradient(90deg, #1a7fe0, #20c7cf 60%, #2fd3b0); }
-  .text-gradient { background-image: linear-gradient(90deg, #4aa8ff, #20c7cf 55%, #2fd3b0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .text-gradient { background-image: linear-gradient(90deg, var(--tg-a, #4aa8ff), var(--tg-b, #20c7cf) 55%, var(--tg-c, #2fd3b0)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .prerender { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; color: var(--color-muted); }
   .prerender h1 { color: var(--color-text); font-size: 1.75rem; font-weight: 700; margin-bottom: .5rem; }
   .prerender a { color: var(--color-cyan); }
+  /* The wordmark artwork is white, so each theme gets its own lockup. */
+  .logo-light { display: none; }
+  :root[data-theme='light'] .logo-dark { display: none; }
+  :root[data-theme='light'] .logo-light { display: inline; }
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .logo-dark { display: none; }
+  :root:not([data-theme='dark']) .logo-light { display: inline; }
 }
 
 @media (prefers-reduced-motion: reduce) {

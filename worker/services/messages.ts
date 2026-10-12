@@ -87,7 +87,9 @@ export function renderOwner(event: OwnerEvent, m: MessageContext & { extra?: str
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const linkify = (s: string) => esc(s).replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}" style="color:#7cc4ff">${u}</a>`);
 
-type Layout = { lang: 'ar' | 'en'; storeUrl: string; preheader?: string; supportWhatsapp?: string; supportEmail?: string };
+type Support = { whatsapp?: string; email?: string; facebook?: string; instagram?: string };
+type Layout = { lang: 'ar' | 'en'; storeUrl: string; preheader?: string; supportWhatsapp?: string; supportEmail?: string; facebook?: string; instagram?: string };
+const httpsUrl = (u?: string) => (u && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : '');
 
 /** Branded email shell. `bodyHtml` must already be escaped/trusted HTML. */
 export function emailShell(inner: string, o: Layout): string {
@@ -98,6 +100,13 @@ export function emailShell(inner: string, o: Layout): string {
   const footer = ar ? 'الرسالة دي من LYnto بخصوص طلبك أو استفسارك. لو مش إنت، تجاهلها.' : 'This message is from LYnto about your order or enquiry. If it is not for you, you can ignore it.';
   const help = ar ? 'محتاج مساعدة؟' : 'Need help?';
   const contact = [o.supportWhatsapp ? `<a href="https://wa.me/${o.supportWhatsapp.replace(/\D/g, '')}" style="color:#7cc4ff">WhatsApp</a>` : '', o.supportEmail ? `<a href="mailto:${esc(o.supportEmail)}" style="color:#7cc4ff">${esc(o.supportEmail)}</a>` : '', `<a href="${o.storeUrl}/support" style="color:#7cc4ff">${ar ? 'صفحة الدعم' : 'Support page'}</a>`].filter(Boolean).join(' · ');
+  const links = [
+    { url: httpsUrl(o.facebook), name: 'Facebook', icon: 'social-facebook.png' },
+    { url: httpsUrl(o.instagram), name: 'Instagram', icon: 'social-instagram.png' },
+  ].filter((l) => l.url);
+  const social = links.length
+    ? `<p style="margin:10px 0 12px">${links.map((l) => `<a href="${esc(l.url)}" style="display:inline-block;margin-${ar ? 'left' : 'right'}:10px;text-decoration:none"><img src="${o.storeUrl}/brand/${l.icon}" alt="${l.name}" width="32" height="32" style="display:block;border:0;border-radius:16px"></a>`).join('')}</p>`
+    : '';
   return `<!doctype html><html lang="${o.lang}" dir="${dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"></head>
 <body style="margin:0;background:#061326;padding:24px 12px;font-family:${font};color:#F5F8FF">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.preheader ?? '')}</div>
@@ -106,11 +115,11 @@ export function emailShell(inner: string, o: Layout): string {
 <tr><td style="padding:22px 26px 0;text-align:${align}"><a href="${o.storeUrl}"><img src="${o.storeUrl}/brand/lynto-lockup.png" alt="LYnto" width="140" style="display:block;border:0;height:auto"></a></td></tr>
 <tr><td dir="${dir}" style="padding:18px 26px 8px;text-align:${align};font-size:16px;line-height:1.85">${inner}</td></tr>
 <tr><td dir="${dir}" style="padding:14px 26px 22px;text-align:${align};border-top:1px solid #1c3a60;font-size:12.5px;line-height:1.8;color:#9FB3D1">
-<p style="margin:0 0 6px">${help} ${contact}</p><p style="margin:0">${esc(footer)}</p></td></tr>
+<p style="margin:0 0 6px">${help} ${contact}</p>${social}<p style="margin:0">${esc(footer)}</p></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-export function emailHtml(r: Rendered, link: string, lang: 'ar' | 'en', storeUrl: string, support?: { whatsapp?: string; email?: string }): string {
+export function emailHtml(r: Rendered, link: string, lang: 'ar' | 'en', storeUrl: string, support?: Support): string {
   const para = r.text.split('\n').map((l) => `<p style="margin:0 0 12px">${linkify(l)}</p>`).join('');
   const rows = r.rows.length
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:6px 0 16px;background:#0f2a4a;border-radius:12px">${r.rows
@@ -118,13 +127,13 @@ export function emailHtml(r: Rendered, link: string, lang: 'ar' | 'en', storeUrl
         .join('')}</table>`
     : '';
   const cta = `<p style="margin:18px 0 10px"><a href="${esc(link)}" style="display:inline-block;background:linear-gradient(90deg,#1a7fe0,#20c7cf);background-color:#168CDD;color:#ffffff;text-decoration:none;padding:13px 24px;border-radius:12px;font-weight:bold">${esc(r.cta)}</a></p>`;
-  return emailShell(para + rows + cta, { lang, storeUrl, preheader: r.preheader, supportWhatsapp: support?.whatsapp, supportEmail: support?.email });
+  return emailShell(para + rows + cta, { lang, storeUrl, preheader: r.preheader, supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram });
 }
 
 /** Free-form message composed by the owner (plain text → branded HTML). */
-export function composedHtml(body: string, lang: 'ar' | 'en', storeUrl: string, support?: { whatsapp?: string; email?: string }): string {
+export function composedHtml(body: string, lang: 'ar' | 'en', storeUrl: string, support?: Support): string {
   const blocks = body.trim().split(/\n{2,}/).map((b) => `<p style="margin:0 0 14px">${linkify(b).replace(/\n/g, '<br>')}</p>`).join('');
-  return emailShell(blocks, { lang, storeUrl, preheader: body.trim().slice(0, 90), supportWhatsapp: support?.whatsapp, supportEmail: support?.email });
+  return emailShell(blocks, { lang, storeUrl, preheader: body.trim().slice(0, 90), supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram });
 }
 
 /** Suggested WhatsApp template bodies to create in Meta Business Manager (variables in order). */

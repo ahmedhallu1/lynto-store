@@ -94,6 +94,13 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 | WhatsApp *catalog* | ⛔ intentionally not created (Meta Commerce Policy) |
 | Meta business verification of Lynto | ⏳ Meta review |
 
+## Added 12 Oct 2026 (brand, themes, product detail)
+- [x] Platform logos on every product (cards, product page, WhatsApp browse images): `scripts/lib/logos.mjs` (simple-icons CC0 glyphs + official/Wikimedia logo files cached in `brand-source/logos`), rendered by `scripts/product-cards.mjs`.
+- [x] Detailed platform text, feature lists and per-plan notes for all 74 products / 207 plans (migration 0007, generator `scripts/product-details.mjs`; guarded so owner edits are never overwritten).
+- [x] Light / dark theme follows the device (CSS `prefers-color-scheme`), with a header toggle (auto → light → dark). Light-theme logo variants via `scripts/brand-light.mjs`.
+- [x] Language follows the device on a first visit (non-Arabic devices go to /en once; choice is remembered; bots are never redirected).
+- [x] Facebook (page "LYnto") and Instagram (@lynto.store) icon links in the website footer and in every customer email (settings → support.socials; emails use `/brand/social-*.png`).
+
 ## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.

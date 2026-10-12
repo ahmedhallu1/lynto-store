@@ -49,7 +49,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   delivery: { sla_working_hours: 2, unpaid_expiry_hours: 48, renewal_reminder_days: 3, payment_reminder_hours: 6 },
   support: {
     whatsapp: '', email: '', phone: '', hours_note_ar: '', hours_note_en: '',
-    socials: { facebook: '', instagram: '', tiktok: '', telegram: '', x: '', youtube: '' },
+    socials: { facebook: 'https://www.facebook.com/profile.php?id=61595340380778', instagram: 'https://www.instagram.com/lynto.store', tiktok: '', telegram: '', x: '', youtube: '' },
   },
   policies: { confirmed: false, ...DRAFT_POLICIES, terms_extra_ar: '', terms_extra_en: '' },
   notifications: {

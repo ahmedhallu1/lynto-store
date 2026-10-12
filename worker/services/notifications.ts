@@ -170,7 +170,7 @@ async function deliverOne(env: Env, s: BusinessSettings, row: NotificationRow) {
     return sendEmail(env, s, row.recipient, `[LYnto] ${r.subject}`, emailHtml(r, link, 'en', store), `${r.text}\n\n${link}`, row.id);
   }
   const r = renderCustomer(row.event as CustomerEvent, ctx);
-  const support = { whatsapp: s.support.whatsapp, email: s.support.email };
+  const support = { whatsapp: s.support.whatsapp, email: s.support.email, facebook: s.support.socials.facebook, instagram: s.support.socials.instagram };
   if (row.channel === 'email') {
     const from = row.event === 'support_received' ? s.notifications.from_support || s.notifications.from_email : s.notifications.from_email;
     return sendEmail(env, s, row.recipient, r.subject, emailHtml(r, ctx.link, lang, store, support), `${r.text}\n\n${r.cta}: ${row.event === 'renewal_reminder' ? store : ctx.link}`, row.id, { from });
@@ -214,7 +214,7 @@ export async function sendTest(env: Env, channel: 'email' | 'whatsapp', to: stri
   const store = baseUrl(env);
   if (channel === 'email') {
     const r = { subject: 'LYnto test email', preheader: 'Email sending works.', text: 'This is a test message from your LYnto store settings. If you can read this, sending from your domain works.', cta: 'Open store', waParams: [], rows: [['Sender', s.notifications.from_email]] as Array<[string, string]> };
-    return sendEmail(env, s, to, r.subject, emailHtml(r, store, 'en', store, { whatsapp: s.support.whatsapp, email: s.support.email }), r.text, 'test-' + crypto.randomUUID());
+    return sendEmail(env, s, to, r.subject, emailHtml(r, store, 'en', store, { whatsapp: s.support.whatsapp, email: s.support.email, facebook: s.support.socials.facebook, instagram: s.support.socials.instagram }), r.text, 'test-' + crypto.randomUUID());
   }
   const r = renderCustomer('order_received', { lang: 'ar', name: 'Test', number: 'LY-TEST00', total_piastres: 100, link: store, store_url: store });
   return sendWhatsApp(env, s, to, 'order_received', r.waParams);

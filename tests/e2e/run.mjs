@@ -224,7 +224,7 @@ async function main() {
     const bad = await A.put('/settings/schedule', { timezone: 'Africa/Cairo', week: { '0': [{ start: '10:00', end: '14:00' }, { start: '13:00', end: '15:00' }] }, holidays: [] });
     eq(bad.status, 400, 'overlapping hours rejected');
     eq((await A.put('/settings/schedule', { timezone: 'Africa/Cairo', week, holidays: [] })).status, 200, 'schedule restored');
-    eq((await A.put('/settings/support', { whatsapp: '01000000001', email: 'support-test@example.com', phone: '', hours_note_ar: '', hours_note_en: '', socials: { facebook: '', instagram: '', tiktok: '', telegram: '', x: '', youtube: '' } })).status, 200, 'support');
+    eq((await A.put('/settings/support', { whatsapp: '01000000001', email: 'support-test@example.com', phone: '', hours_note_ar: '', hours_note_en: '', socials: { facebook: 'https://www.facebook.com/profile.php?id=61595340380778', instagram: 'https://www.instagram.com/lynto.store', tiktok: '', telegram: '', x: '', youtube: '' } })).status, 200, 'support');
     const s = (await A.get('/settings')).json.settings;
     eq(s.support.whatsapp, '+201000000001', 'support WhatsApp normalised to E.164');
     eq((await A.put('/settings/policies', { ...s.policies, confirmed: true })).status, 200, 'policies');
@@ -487,6 +487,7 @@ async function main() {
       const b = JSON.parse(mock.calls.find((c) => c.url === '/emails').body);
       eq(b.from, 'LYnto <info@lynto.store>', 'from header'); eq(b.reply_to, 'info@lynto.store', 'reply-to defaults to sender');
       assert(b.html.includes('dir="rtl"') && b.html.includes('<a href="https://lynto.store"'), 'branded rtl html with linkified url');
+      assert(b.html.includes('href="https://www.facebook.com/profile.php?id=61595340380778"') && b.html.includes('href="https://www.instagram.com/lynto.store"') && b.html.includes('/brand/social-facebook.png'), 'emails carry Facebook and Instagram icon links');
       eq((await A.post('/mail/send', { from_local: 'a@evil.com', to: ['x@example.com'], subject: 's', body: 'b' })).status, 400, 'sender injection rejected');
       eq((await A.post('/mail/send', { from_local: 'orders', to: ['not-an-email'], subject: 's', body: 'b' })).status, 400, 'bad recipient rejected');
       eq((await A.post('/mail/send', { from_local: 'orders', to: Array.from({ length: 11 }, (_, i) => 'u' + i + '@example.com'), subject: 's', body: 'b' })).status, 400, 'too many recipients');

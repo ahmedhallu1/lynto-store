@@ -38,7 +38,7 @@ export async function composeAndSend(env: Env, actor: string, input: ComposeInpu
     if (!o) throw notFound('order_not_found');
   }
   const store = baseUrl(env);
-  const html = composedHtml(input.body, input.lang ?? 'ar', store, { whatsapp: s.support.whatsapp, email: s.support.email });
+  const html = composedHtml(input.body, input.lang ?? 'ar', store, { whatsapp: s.support.whatsapp, email: s.support.email, facebook: s.support.socials.facebook, instagram: s.support.socials.instagram });
   const results: Array<{ to: string; id: string; status: string; error?: string }> = [];
   for (const to of recipients) {
     const id = newId('eml');

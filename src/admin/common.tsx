@@ -63,7 +63,7 @@ export function fromLocalInput(s: string): number | null {
 
 export function Notice({ msg }: { msg: { kind: 'ok' | 'bad' | 'warn' | 'info'; text: string; details?: unknown } | null }) {
   if (!msg) return null;
-  const cls = { ok: 'border-ok/40 bg-ok/10 text-ok', bad: 'border-bad/40 bg-bad/10 text-bad', warn: 'border-warn/40 bg-warn/10 text-warn', info: 'border-blue/40 bg-blue/10 text-[#7cc4ff]' }[msg.kind];
+  const cls = { ok: 'border-ok/40 bg-ok/10 text-ok', bad: 'border-bad/40 bg-bad/10 text-bad', warn: 'border-warn/40 bg-warn/10 text-warn', info: 'border-blue/40 bg-blue/10 text-blue' }[msg.kind];
   return (
     <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${cls}`}>
       {msg.text}
