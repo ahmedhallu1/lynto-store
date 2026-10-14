@@ -19,6 +19,9 @@ export interface Env {
   WHATSAPP_VERIFY_TOKEN?: string; // optional: webhook verify token
   WHATSAPP_PIN?: string; // optional: 6-digit two-step PIN used when registering the number on the Cloud API
   RESEND_WEBHOOK_SECRET?: string; // optional: Resend webhook signing secret (whsec_…)
+  GOOGLE_CLIENT_ID?: string; // optional: OAuth client for the cashier-sheet import (scripts/google-connect.mjs)
+  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_REFRESH_TOKEN?: string; // read-only Google Sheets access of the owner's account
 
   // Optional Cloudflare Access hardening for /admin
   ACCESS_TEAM_DOMAIN?: string;

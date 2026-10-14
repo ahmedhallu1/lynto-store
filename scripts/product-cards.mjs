@@ -32,7 +32,14 @@ const lockup = readFileSync(join(root, 'public/brand/lynto-lockup.png')).toStrin
 
 // naive word-wrap by character budget (Arabic and Latin both OK for short product names)
 function wrap(text, max) {
-  const words = String(text).split(/\s+/);
+  // keep a whole run of Latin words (a brand like "Clash of Clans") on one line when the run fits
+  const words = [];
+  let run = [];
+  const flush = () => { if (run.join(' ').length <= max) { if (run.length) words.push(run.join(' ')); } else words.push(...run); run = []; };
+  for (const w of String(text).split(/\s+/)) {
+    if (/[\u0600-\u06FF]/.test(w)) { flush(); words.push(w); } else run.push(w);
+  }
+  flush();
   const lines = [];
   let cur = '';
   for (const w of words) {

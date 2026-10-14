@@ -31,6 +31,20 @@ const MAP = {
   'nintendo-eshop': 'file:nintendo.svg', 'amazon-gift-card': 'file:amazon.svg', 'netflix-gift-card': 'si:Netflix', 'roblox-gift-card': 'si:Roblox', 'razer-gold': 'si:Razer',
   'pubg-mobile-uc': 'file:pubgmobile.png', 'free-fire-diamonds': 'file:freefire.png', 'fortnite-vbucks': 'si:Fortnite', 'valorant-points': 'si:Valorant',
   'cod-mobile-cp': 'file:codmobile.png', 'mobile-legends-diamonds': 'file:mobilelegends.png', 'genshin-impact': 'file:genshin.png', 'ea-fc-points': 'si:Ea', 'tiktok-coins': 'si:Tiktok',
+  // catalogue expansion (Oct 2026); platforms without a free logo source fall back to a monogram tile
+  'microsoft-copilot-pro': 'ms-squares', 'poe': 'si:Poe', 'replit-core': 'si:Replit', 'windsurf': 'si:Windsurf', 'v0': 'si:V0',
+  'adobe-lightroom': 'file:adobe.png', 'adobe-illustrator': 'file:adobe.png', 'adobe-after-effects': 'file:adobe.png', 'adobe-express': 'file:adobe.png',
+  'envato-elements': 'si:Envato', 'freepik-premium': 'si:Freepik', 'autocad': 'si:Autocad', 'autodesk-maya': 'si:Autodeskmaya', 'sketchup-pro': 'si:Sketchup',
+  'coreldraw': 'si:Coreldraw', 'cleanmymac': 'si:Macpaw', 'kaspersky': 'si:Kaspersky', 'norton-360': 'si:Norton', 'bitdefender': 'si:Bitdefender',
+  'proton-unlimited': 'si:Proton', 'microsoft-visio': 'ms-squares', 'microsoft-project': 'ms-squares', 'visual-studio-pro': 'ms-squares',
+  'udemy-personal-plan': 'si:Udemy', 'skillshare': 'si:Skillshare', 'quizlet-plus': 'si:Quizlet', 'audible': 'si:Audible', 'kindle-unlimited': 'file:amazon.svg',
+  'google-workspace': 'si:Google', 'todoist-pro': 'si:Todoist', 'evernote': 'si:Evernote', 'bitwarden-premium': 'si:Bitwarden',
+  'starzon': 'si:Starz', 'paramount-plus': 'si:Paramountplus', 'deezer-premium': 'si:Deezer', 'tidal': 'si:Tidal', 'soundcloud-go': 'si:Soundcloud',
+  'apple-one': 'si:Apple', 'apple-arcade': 'si:Applearcade', 'google-play-pass': 'si:Googleplay', 'ea-play': 'si:Ea', 'ubisoft-plus': 'si:Ubisoft',
+  'spotify-gift-card': 'si:Spotify', 'uber-gift-card': 'si:Uber', 'airbnb-gift-card': 'si:Airbnb', 'ebay-gift-card': 'si:Ebay', 'target-gift-card': 'si:Target',
+  'starbucks-gift-card': 'si:Starbucks', 'doordash-gift-card': 'si:Doordash', 'nike-gift-card': 'si:Nike', 'twitch-gift-card': 'si:Twitch',
+  'battlenet-balance': 'si:Battledotnet', 'league-of-legends-rp': 'si:Leagueoflegends', 'meta-quest-gift-card': 'si:Meta',
+  'apex-legends-coins': 'si:Ea', 'clash-of-clans-gems': 'si:Supercell', 'brawl-stars-gems': 'si:Supercell', 'clash-royale-gems': 'si:Supercell', 'wild-rift-cores': 'si:Riotgames',
 };
 
 const lum = (hex) => { const n = parseInt(hex, 16); const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255); };

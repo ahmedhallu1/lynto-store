@@ -104,3 +104,13 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 ## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.
+
+## Added 15 Oct 2026 (catalogue expansion + cashier-sheet import)
+| Item | Status |
+|---|---|
+| Catalogue expansion: +89 products (AI, software, streaming, US gift cards, game top-ups) and +157 plans on launch products → 163 products / ~630 plans, 97 – 177,000 EGP, largest price gap ≈ 18% (migration 0008, generator `scripts/catalog-expansion.mjs`, data `scripts/data/expansion.mjs`). Prices are **estimates** (USD × 50 × margin, floor 97 EGP) | ✅ local/E2E · ⏳ owner price review |
+| Product cards for new products (`scripts/product-cards.mjs`; Latin brand names no longer split across lines) | ✅ |
+| Cashier-sheet import (`worker/services/sheet-sync.ts`, migration 0009): daily after 03:00 Cairo, Credit + Transactions + whole amount from 1 Aug 2026 → paid & delivered order (`LS-XXXXXX`, source `sheet`), matched to the nearest 1–3 plan prices (`shared/match.ts`), no customer data, no notifications/Meta events, counts in revenue. Server-side date filter (gviz query), chunked backfill, 7-day look-back, dedupe by date+amount+wallet | ✅ unit + E2E (mock Google) |
+| Admin → Sales (revenue by source/month/product, sheet import status, Sync now, settings); Orders filters "From website / From cashier sheet"; dashboard warning on import failure | ✅ |
+| Google connection: `node scripts/google-connect.mjs <oauth-client.json>` (read-only Sheets scope; stores GOOGLE_* Worker secrets + `.secrets/*.env`) | ⏳ owner sign-in |
+| OAuth consent screen of the Google Cloud project must be "In production" (Testing mode refresh tokens expire after 7 days) | ⏳ owner |

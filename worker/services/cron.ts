@@ -4,6 +4,7 @@ import { now } from '../lib/util';
 import { dispatchPending, notificationStmts, ownerAlertStmts, planCustomerChannels, recipientFor } from './notifications';
 import { cancelOrder } from './orders';
 import { goLiveIfDue } from './whatsapp';
+import { sheetSyncIfDue } from './sheet-sync';
 
 /** Runs every 5 minutes in production. Each job is idempotent. */
 export async function runScheduled(env: Env) {
@@ -60,6 +61,10 @@ export async function runScheduled(env: Env) {
   // 3b) WhatsApp go-live automation (registers the number, creates templates/Flows, enables sending when Meta unblocks it).
   const golive = await goLiveIfDue(env).catch(() => null);
   if (golive) report.whatsapp_golive = golive.enabled ? 1 : 0;
+
+  // 3c) Cashier-sheet import (daily; continues a pass in progress one chunk per tick).
+  const sheet = await sheetSyncIfDue(env).catch((e) => { report.sheet_error = 1; console.error(JSON.stringify({ level: 'error', job: 'sheet_sync', message: String(e?.message ?? e).slice(0, 300) })); return null; });
+  if (sheet) report.sheet_imported = sheet.imported;
 
   // 4) Send/retry pending notifications.
   report.dispatched = (await dispatchPending(env, { limit: 50 })).processed;
