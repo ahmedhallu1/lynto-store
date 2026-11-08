@@ -1,13 +1,19 @@
 // Money is always integer piastres (1 EGP = 100 piastres). Never use floats for totals.
+const numberFormats = new Map<string, Intl.NumberFormat>();
 
 export function formatEGP(piastres: number | null | undefined, lang: 'ar' | 'en' = 'ar'): string {
   if (piastres === null || piastres === undefined) return '';
   const egp = piastres / 100;
   const hasFraction = piastres % 100 !== 0;
-  const num = new Intl.NumberFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
-    minimumFractionDigits: hasFraction ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(egp);
+  const key = lang + (hasFraction ? '-fraction' : '-whole');
+  let formatter = numberFormats.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
+      minimumFractionDigits: hasFraction ? 2 : 0, maximumFractionDigits: 2,
+    });
+    numberFormats.set(key, formatter);
+  }
+  const num = formatter.format(egp);
   return lang === 'ar' ? `${num} ج.م` : `EGP ${num}`;
 }
 

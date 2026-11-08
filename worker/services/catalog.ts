@@ -1,5 +1,5 @@
 import type { Env } from '../env';
-import type { CustomerField, PublicCategory, PublicPlan, PublicProduct } from '../../shared/types';
+import type { CustomerField, PublicCategory, PublicPlan, PublicProduct, PublicProductCard } from '../../shared/types';
 import { parseJSON } from '../lib/util';
 
 export type ProductRow = {
@@ -74,14 +74,58 @@ export async function listPublishedProducts(env: Env): Promise<PublicProduct[]> 
 }
 
 export async function getPublishedProduct(env: Env, slug: string): Promise<PublicProduct | null> {
-  const all = await listPublishedProducts(env);
-  return all.find((p) => p.slug === slug) ?? null;
+  // A detail request must never deserialize the entire catalog. Loading it here risks exceeding
+  // Workers Free CPU limits as the catalog grows to hundreds of bilingual product pages.
+  const p = await env.DB.prepare("SELECT * FROM products WHERE slug = ? AND status = 'published' AND supply_status = 'validated'").bind(slug).first<ProductRow>();
+  if (!p) return null;
+  const [cat, plans] = await Promise.all([
+    env.DB.prepare('SELECT * FROM categories WHERE id = ?').bind(p.category_id).first<CategoryRow>(),
+    env.DB.prepare("SELECT * FROM plans WHERE product_id = ? AND status = 'approved' AND price_piastres > 0 ORDER BY sort").bind(p.id).all<PlanRow>(),
+  ]);
+  if (!cat || !plans.results.length) return null;
+  return toPublicProduct(p, cat, plans.results);
 }
 
 export async function listCategories(env: Env, products?: PublicProduct[]): Promise<PublicCategory[]> {
+  if (!products) {
+    // Count eligible products in SQL, without loading descriptions, customer fields or plans.
+    const rows = await env.DB.prepare(`SELECT c.*, COUNT(p.id) AS product_count FROM categories c
+      LEFT JOIN products p ON p.category_id = c.id AND p.status = 'published' AND p.supply_status = 'validated'
+        AND EXISTS (SELECT 1 FROM plans pl WHERE pl.product_id = p.id AND pl.status = 'approved' AND pl.price_piastres > 0)
+      GROUP BY c.id ORDER BY c.sort`).all<PublicCategory>();
+    return rows.results;
+  }
   const cats = (await env.DB.prepare('SELECT * FROM categories ORDER BY sort').all<CategoryRow>()).results;
-  const prods = products ?? (await listPublishedProducts(env));
-  return cats.map((c) => ({ ...c, product_count: prods.filter((p) => p.category.id === c.id).length }));
+  return cats.map((c) => ({ ...c, product_count: products.filter((p) => p.category.id === c.id).length }));
+}
+
+export async function listPublishedProductCards(env: Env, opts: { categorySlug?: string; featured?: boolean; limit?: number } = {}): Promise<PublicProductCard[]> {
+  const params: (string | number)[] = [];
+  const category = opts.categorySlug ? (params.push(opts.categorySlug), ' AND c.slug = ?') : '';
+  const featured = opts.featured ? ' AND p.featured = 1' : '';
+  const limit = opts.limit ? (params.push(Math.max(1, Math.min(200, Math.trunc(opts.limit)))), ' LIMIT ?') : '';
+  const rows = await env.DB.prepare(`SELECT p.id, p.slug, p.brand, p.title_ar, p.title_en, p.summary_ar, p.summary_en,
+      p.image_key, p.icon_text, p.accent, p.featured, c.id AS category_id, c.slug AS category_slug,
+      c.name_ar AS category_ar, c.name_en AS category_en,
+      MIN(CASE WHEN pl.availability = 'available' THEN pl.price_piastres END) AS min_price_piastres
+    FROM products p JOIN categories c ON c.id = p.category_id JOIN plans pl ON pl.product_id = p.id
+    WHERE p.status = 'published' AND p.supply_status = 'validated' AND pl.status = 'approved' AND pl.price_piastres > 0${category}${featured}
+    GROUP BY p.id ORDER BY p.featured DESC, p.sort, p.title_en${limit}`).bind(...params).all<any>();
+  return rows.results.map((r) => ({ id: r.id, slug: r.slug, brand: r.brand, title_ar: r.title_ar, title_en: r.title_en,
+    summary_ar: r.summary_ar, summary_en: r.summary_en, image_url: r.image_key ? `/media/${r.image_key}` : null,
+    icon_text: r.icon_text, accent: r.accent, featured: !!r.featured, min_price_piastres: r.min_price_piastres,
+    available: r.min_price_piastres !== null,
+    category: { id: r.category_id, slug: r.category_slug, name_ar: r.category_ar, name_en: r.category_en } }));
+}
+
+export async function listIndexableProducts(env: Env): Promise<{ slug: string; updated_at: number }[]> {
+  const rows = await env.DB.prepare(`SELECT p.slug,
+      MAX(p.updated_at, COALESCE((SELECT MAX(pl.updated_at) FROM plans pl WHERE pl.product_id = p.id AND pl.status = 'approved' AND pl.price_piastres > 0), p.updated_at)) AS updated_at
+    FROM products p WHERE p.status = 'published' AND p.supply_status = 'validated'
+      AND EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id)
+      AND EXISTS (SELECT 1 FROM plans pl WHERE pl.product_id = p.id AND pl.status = 'approved' AND pl.price_piastres > 0)
+    ORDER BY p.slug`).all<{ slug: string; updated_at: number }>();
+  return rows.results;
 }
 
 /** Server-side publish validation. Returns a list of problems; empty = publishable. */

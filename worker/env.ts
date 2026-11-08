@@ -31,4 +31,4 @@ export interface Env {
 
 export type AdminUser = { id: string; email: string; name: string; totp_enabled: number };
 
-export type AppContext = { Bindings: Env; Variables: { admin: AdminUser; sessionHash: string } };
+export type AppContext = { Bindings: Env; Variables: { admin: AdminUser; sessionHash: string; businessSettings?: import('../shared/types').BusinessSettings } };

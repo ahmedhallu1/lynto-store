@@ -104,3 +104,10 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 ## Owner decisions still open
 Receiving accounts, working hours, support contacts, final guarantee/refund terms, plan list + EGP prices + supply validation per product,
 email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Products / Pricing.
+
+## 8 November 2026 — SEO/GEO and reliability branch
+
+- Source changes: targeted product queries; lightweight catalog/bootstrap projections; reused money formatters; shared server/client metadata; index-state recovery; localized plan Offer markup and plan deep links; real policy/FAQ snapshots; crawlable public rendering dependencies; manifest/404/analytics corrections; optional plain-text llms document.
+- Content/assets: two original bilingual guides with sources and internal links; 89 missing product cards and thumbnails added using the existing design. Product data/prices/approvals and production orders were not modified.
+- Local validation: typecheck, production build, 33 unit/DOM/SQLite tests and 10 isolated Worker integration checks passed. Full browser preview was blocked by this environment's network-interface enumeration; live deployment and runtime performance verification remain pending Cloudflare access.
+- Detailed evidence, limitations and measurement plan: `docs/SEO_GEO_2026-11-08.md`.

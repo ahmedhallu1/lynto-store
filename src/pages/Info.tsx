@@ -10,7 +10,10 @@ import { WorkingHours } from './Home';
 import { isAlwaysOpen } from '../lib/format';
 
 function Prose({ title, children }: { title: string; children: ReactNode }) {
-  usePageTitle(title);
+  const { pathname } = useLocation();
+  const { data } = useStore();
+  const pendingPolicy = /\/(terms|guarantee)$/.test(pathname) && !data?.settings.policies.confirmed;
+  usePageTitle(title, { noindex: pendingPolicy, settings: data?.settings });
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
