@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { PublicProduct } from '../../shared/types';
+import type { PublicProductCard } from '../../shared/types';
 import { useI18n } from '../i18n';
 import { Link, navigate, useLocation } from '../lib/router';
 import { fetchProducts, useStore } from '../lib/store';
@@ -7,17 +7,18 @@ import { ProductCard } from '../components/ProductCard';
 import { Icon } from '../components/icons';
 import { Alert, Input, Select, Spinner, cx } from '../components/ui';
 import { usePageTitle } from '../components/usePageTitle';
+import { SEO_COPY } from '../../shared/seo';
 
 export function Catalog({ categorySlug }: { categorySlug?: string }) {
-  const { t, href, pick } = useI18n();
+  const { t, href, pick, lang } = useI18n();
   const { data } = useStore();
   const { search } = useLocation();
-  const [products, setProducts] = useState<PublicProduct[] | null>(null);
+  const [products, setProducts] = useState<PublicProductCard[] | null>(null);
   const [error, setError] = useState(false);
   const [q, setQ] = useState(search.get('q') ?? '');
   const [sort, setSort] = useState(search.get('sort') ?? 'featured');
   const category = data?.categories.find((c) => c.slug === categorySlug);
-  usePageTitle(category ? pick(category.name_ar, category.name_en) : t('catalog.title'));
+  usePageTitle(category ? pick(category.name_ar, category.name_en) : SEO_COPY[lang].catalog, { category, noindex: !!categorySlug && !!data && !category });
 
   useEffect(() => { fetchProducts().then(setProducts).catch(() => setError(true)); }, []);
 
@@ -26,7 +27,7 @@ export function Catalog({ categorySlug }: { categorySlug?: string }) {
     const needle = q.trim().toLowerCase();
     let l = products.filter((p) => (!categorySlug || p.category.slug === categorySlug)
       && (!needle || [p.title_ar, p.title_en, p.brand, p.summary_ar, p.summary_en].some((s) => s.toLowerCase().includes(needle))));
-    const price = (p: PublicProduct) => p.min_price_piastres ?? Number.MAX_SAFE_INTEGER;
+    const price = (p: PublicProductCard) => p.min_price_piastres ?? Number.MAX_SAFE_INTEGER;
     if (sort === 'priceAsc') l = [...l].sort((a, b) => price(a) - price(b));
     else if (sort === 'priceDesc') l = [...l].sort((a, b) => (b.min_price_piastres ?? 0) - (a.min_price_piastres ?? 0));
     else if (sort === 'name') l = [...l].sort((a, b) => pick(a.title_ar, a.title_en).localeCompare(pick(b.title_ar, b.title_en)));

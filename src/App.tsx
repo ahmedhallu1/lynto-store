@@ -10,6 +10,7 @@ import { ProductPage } from './pages/Product';
 import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { OrderPage } from './pages/Order';
+import { Guides } from './pages/Guides';
 import { About, DataDeletion, Guarantee, NotFound, Privacy, Support, Terms } from './pages/Info';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
@@ -18,6 +19,8 @@ function StoreRoutes({ path }: { path: string }) {
   let m: Record<string, string> | null;
   if (path === '/') return <Home />;
   if (path === '/products') return <Catalog />;
+  if (path === '/guides') return <Guides />;
+  if ((m = match('/guides/:slug', path))) return <Guides key={m.slug} slug={m.slug} />;
   if ((m = match('/c/:slug', path))) return <Catalog key={m.slug} categorySlug={m.slug} />;
   if ((m = match('/p/:slug', path))) return <ProductPage key={m.slug} slug={m.slug} />;
   if (path === '/cart') return <Cart />;

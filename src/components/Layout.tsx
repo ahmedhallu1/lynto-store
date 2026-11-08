@@ -48,6 +48,7 @@ function Header() {
   useEffect(() => setOpen(false), [pathname]);
   const nav = [
     { to: href('/products'), label: t('nav.products') },
+    { to: href('/guides'), label: lang === 'ar' ? 'أدلة الشراء' : 'Buying guides' },
     { to: href('/support'), label: t('nav.support') },
   ];
   return (

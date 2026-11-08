@@ -114,3 +114,10 @@ email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Product
 | Admin → Sales (revenue by source/month/product, sheet import status, Sync now, settings); Orders filters "From website / From cashier sheet"; dashboard warning on import failure | ✅ |
 | Google connection: `node scripts/google-connect.mjs <oauth-client.json>` (read-only Sheets scope; stores GOOGLE_* Worker secrets + `.secrets/*.env`) | ⏳ owner sign-in |
 | OAuth consent screen of the Google Cloud project must be "In production" (Testing mode refresh tokens expire after 7 days) | ⏳ owner |
+
+## 8 November 2026 — SEO/GEO and reliability branch
+
+- Source changes: targeted product queries; lightweight catalog/bootstrap projections; reused money formatters; shared server/client metadata; index-state recovery; localized plan Offer markup and plan deep links; real policy/FAQ snapshots; crawlable public rendering dependencies; manifest/404/analytics corrections; optional plain-text llms document.
+- Content/assets: two original bilingual guides with sources and internal links; 89 missing product cards and thumbnails added using the existing design. Product data/prices/approvals and production orders were not modified.
+- Local validation: typecheck, production build, 33 unit/DOM/SQLite tests and 10 isolated Worker integration checks passed. Full browser preview was blocked by this environment's network-interface enumeration; live deployment and runtime performance verification remain pending Cloudflare access.
+- Detailed evidence, limitations and measurement plan: `docs/SEO_GEO_2026-11-08.md`.

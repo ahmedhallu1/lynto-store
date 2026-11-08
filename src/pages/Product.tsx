@@ -17,6 +17,7 @@ export function ProductPage({ slug }: { slug: string }) {
   const { t, href, lang, pick } = useI18n();
   const { search } = useLocation();
   const previewId = search.get('preview');
+  const requestedPlan = search.get('plan');
   const { data } = useStore();
   const [product, setProduct] = useState<PublicProduct | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing' | 'error'>('loading');
@@ -33,14 +34,14 @@ export function ProductPage({ slug }: { slug: string }) {
       : api.get<{ product: PublicProduct }>(`/api/public/products/${encodeURIComponent(slug)}`);
     req.then((r) => {
       setProduct(r.product);
-      setPlanId(r.product.plans.find((p) => p.available)?.id ?? r.product.plans[0]?.id ?? '');
+      setPlanId(r.product.plans.find((p) => p.id === requestedPlan)?.id ?? r.product.plans.find((p) => p.available)?.id ?? r.product.plans[0]?.id ?? '');
       setState('ok');
       if (!previewId) track('ViewContent', { content_ids: [r.product.id], content_type: 'product', currency: 'EGP', value: (r.product.min_price_piastres ?? 0) / 100 });
     }).catch((e) => setState(e?.status === 404 || e?.status === 401 ? 'missing' : 'error'));
-  }, [slug, previewId]);
+  }, [slug, previewId, requestedPlan]);
 
   const title = product ? pick(product.title_ar, product.title_en) : '';
-  usePageTitle(title || t('nav.products'), { noindex: !!previewId });
+  usePageTitle(title || t('nav.products'), { noindex: !!previewId || state === 'missing', product, settings: data?.settings });
   const plan = useMemo(() => product?.plans.find((p) => p.id === planId), [product, planId]);
 
   if (state === 'loading') return <Spinner label={t('common.loading')} />;
@@ -122,6 +123,7 @@ export function ProductPage({ slug }: { slug: string }) {
               {pick(product.guarantee_ar, product.guarantee_en) && <p className="mt-1 whitespace-pre-line text-muted">{pick(product.guarantee_ar, product.guarantee_en)}</p>}
               <Link href={href('/guarantee')} className="mt-1 inline-block text-sm font-semibold text-cyan">{t('product.guarantee.policy')}</Link>
             </div>
+            <Link href={href('/guides/pay-digital-subscriptions-egypt')} className="block text-sm font-semibold text-cyan">{pick('إزاي تدفع وتتابع طلبك؟', 'How to pay and track your order')}</Link>
           </section>
         </div>
 

@@ -6,6 +6,8 @@ import { Icon, categoryIcon } from '../components/icons';
 import { Section, Spinner, Alert } from '../components/ui';
 import { isAlwaysOpen, time12, weekdayName } from '../lib/format';
 import { usePageTitle } from '../components/usePageTitle';
+import { SEO_COPY } from '../../shared/seo';
+import { GUIDES, guideCopy } from '../../shared/guides';
 
 export function WorkingHours({ week }: { week: Record<string, Array<{ start: string; end: string }>> }) {
   const { lang, pick, t } = useI18n();
@@ -27,9 +29,9 @@ export function WorkingHours({ week }: { week: Record<string, Array<{ start: str
 }
 
 export function Home() {
-  const { t, href, pick } = useI18n();
+  const { t, href, pick, lang } = useI18n();
   const { data, error, reload } = useStore();
-  usePageTitle(t('home.title'));
+  usePageTitle(SEO_COPY[lang].siteTitle, { settings: data?.settings });
   const s = data?.settings;
   const methods = s?.payment_methods.length ? s.payment_methods : null;
   const open247 = isAlwaysOpen(s?.schedule_summary.week);
@@ -138,6 +140,9 @@ export function Home() {
           </section>
         </>
       )}
+      <Section title={pick('أدلة تساعدك تختار وتطلب', 'Guides to choosing and ordering')}>
+        <div className="grid gap-4 md:grid-cols-2">{GUIDES.map((g) => { const copy = guideCopy(g, lang); return <article key={g.slug} className="card p-5"><h2 className="font-semibold"><Link href={href(`/guides/${g.slug}`)} className="text-cyan">{copy.title}</Link></h2><p className="mt-2 text-sm text-muted">{copy.summary}</p></article>; })}</div>
+      </Section>
     </>
   );
 }
