@@ -1,10 +1,10 @@
-import type { PublicProduct } from '../../shared/types';
+import type { PublicProductCard } from '../../shared/types';
 import { useI18n } from '../i18n';
 import { Link } from '../lib/router';
 import { money } from '../lib/format';
 import { Badge, ProductMark } from './ui';
 
-export function ProductCard({ p }: { p: PublicProduct }) {
+export function ProductCard({ p }: { p: PublicProductCard }) {
   const { t, href, lang, pick } = useI18n();
   const title = pick(p.title_ar, p.title_en);
   return (

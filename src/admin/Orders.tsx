@@ -7,7 +7,7 @@ import { FulBadge, NoteBadge, Notice, PageHeader, PayBadge, dueLabel, egp, errMs
 
 const VIEWS = [
   ['all', 'All'], ['proofs', 'Proofs to review'], ['awaiting_transfer', 'Awaiting transfer'], ['to_deliver', 'To deliver'], ['overdue', 'Overdue'],
-  ['delivered', 'Delivered'], ['refunds', 'Refunds'], ['cancelled', 'Cancelled'],
+  ['delivered', 'Delivered'], ['refunds', 'Refunds'], ['cancelled', 'Cancelled'], ['website', 'From website'], ['sheet', 'From cashier sheet'],
 ] as const;
 
 export function OrdersList() {
@@ -41,9 +41,11 @@ export function OrdersList() {
                 const d = dueLabel(o.delivery_due_at, data.now);
                 return (
                   <tr key={o.id} className="border-t border-line/60 hover:bg-text/[0.04] cursor-pointer" onClick={() => navigate(`/admin/orders/${o.id}`)}>
-                    <td className="p-3"><Link href={`/admin/orders/${o.id}`} className="font-mono text-cyan">{o.number}</Link></td>
-                    <td className="p-3">{o.customer_name}<div className="text-xs text-dim">{o.customer_whatsapp}</div></td>
-                    <td className="p-3 font-semibold">{egp(o.total_piastres)}</td>
+                    <td className="p-3 whitespace-nowrap"><Link href={`/admin/orders/${o.id}`} className="font-mono text-cyan">{o.number}</Link></td>
+                    <td className="p-3">{o.source === 'sheet'
+                      ? <><Badge kind="info">Cashier sheet</Badge>{o.source_ref && <div className="mt-1 font-mono text-xs text-dim">{o.source_ref}</div>}</>
+                      : <>{o.customer_name}<div className="text-xs text-dim">{o.customer_whatsapp}</div></>}</td>
+                    <td className="p-3 font-semibold">{egp(o.total_piastres)}{o.source === 'sheet' && o.verified_amount_piastres !== o.total_piastres && <div className="text-xs font-normal text-dim">received {egp(o.verified_amount_piastres)}</div>}</td>
                     <td className="p-3"><PayBadge s={o.payment_status} /></td>
                     <td className="p-3"><FulBadge s={o.fulfillment_status} /></td>
                     <td className="p-3 text-xs">{o.payment_status === 'verified' && o.fulfillment_status !== 'delivered' ? <span className={d.overdue ? 'text-bad font-semibold' : ''}>{d.text}</span> : when(o.created_at)}</td>
@@ -90,6 +92,13 @@ export function OrderDetail({ id }: { id: string }) {
           <RefundPanel data={data} busy={busy} act={act} />
         </div>
         <div className="space-y-4">
+          {o.source === 'sheet' ? (
+            <Card>
+              <h2 className="font-semibold">Imported from the cashier sheet</h2>
+              <p className="mt-2 text-sm">Received <b>{egp(o.verified_amount_piastres)}</b> on {when(o.verified_at)}{o.source_ref ? <> · transaction <span className="font-mono">{o.source_ref}</span></> : null}.</p>
+              <p className="mt-1 text-sm text-muted">Matched to the nearest catalogue price{data.items.length > 1 ? 's' : ''}: items total {egp(o.total_piastres)}. No customer details are stored and no messages are sent for imported orders.</p>
+            </Card>
+          ) : (<>
           <Card>
             <h2 className="font-semibold">Customer</h2>
             <p className="mt-2">{o.customer_name}</p>
@@ -113,6 +122,7 @@ export function OrderDetail({ id }: { id: string }) {
               <Button size="sm" variant="ghost" loading={busy === 'link'} onClick={() => { if (confirm('Generate a new link? The old link will stop working.')) act('link', async () => { const r = await adminApi.post<{ url: string }>(`/orders/${id}/regenerate-link`); await navigator.clipboard?.writeText(r.url).catch(() => {}); return r; }, 'New link generated and copied.'); }}>Regenerate</Button>
             </div>
           </Card>
+          </>)}
           <NotificationsPanel data={data} reload={reload} setMsg={setMsg} />
           <NotesPanel id={id} initial={o.internal_notes} />
           <Card>

@@ -10,5 +10,8 @@ dist/
 *.log
 .DS_Store
 tests/e2e/.artifacts/
-.secrets/
+.secrets
 backups/
+
+# Product card derivatives are reproducible from the checked-in card manifest.
+/public/catalog/*.jpg

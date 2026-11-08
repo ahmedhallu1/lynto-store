@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "LYnto digital store — React + Vite on Cloudflare Workers, D1 and R2.",
+  "description": "LYnto digital store \u2014 React + Vite on Cloudflare Workers, D1 and R2.",
   "engines": {
     "node": ">=22"
   },
@@ -21,7 +21,10 @@
     "db:migrate:staging": "wrangler d1 migrations apply lynto-db-staging --remote --env staging",
     "db:migrate:prod": "wrangler d1 migrations apply lynto-db --remote",
     "deploy:staging": "npm run build:staging && wrangler deploy --config dist/lynto/wrangler.json --secrets-file .secrets/staging.env",
-    "deploy:prod": "npm run build && wrangler deploy --config dist/lynto/wrangler.json --secrets-file .secrets/production.env"
+    "deploy:prod": "npm run build && wrangler deploy --config dist/lynto/wrangler.json --secrets-file .secrets/production.env",
+    "prebuild": "node scripts/product-cards.mjs --catalog-json brand-source/catalog-additions.json --missing-only && node scripts/seo-assets.mjs",
+    "prebuild:staging": "node scripts/product-cards.mjs --catalog-json brand-source/catalog-additions.json --missing-only && node scripts/seo-assets.mjs",
+    "test:seo": "node tests/e2e/seo.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
@@ -40,6 +43,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "happy-dom": "^21.0.4",
+    "miniflare": "5.20261006.1-alpha",
     "sharp": "^0.35.5",
     "simple-icons": "^16.35.0",
     "tailwindcss": "^4.3.3",

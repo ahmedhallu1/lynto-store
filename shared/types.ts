@@ -150,4 +150,7 @@ export type PublicProduct = {
 
 export type PublicCategory = { id: string; slug: string; name_ar: string; name_en: string; description_ar: string; description_en: string; icon: string; product_count: number };
 
+/** Fields required by catalog cards; descriptions and complete plans belong on the detail endpoint. */
+export type PublicProductCard = Pick<PublicProduct, 'id' | 'slug' | 'category' | 'brand' | 'title_ar' | 'title_en' | 'summary_ar' | 'summary_en' | 'image_url' | 'icon_text' | 'accent' | 'featured' | 'min_price_piastres' | 'available'>;
+
 export type CartLine = { productId: string; planId: string; qty: number; fields: Record<string, string> };

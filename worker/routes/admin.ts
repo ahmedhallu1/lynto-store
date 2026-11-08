@@ -23,6 +23,7 @@ import { composeAndSend, resendDomainStatus } from '../services/mail';
 import { eraseCustomerData } from '../services/privacy';
 import { createFlows, createMissingTemplates, goLiveCheck, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
 import { enforceRate } from '../lib/util';
+import { googleConnected, loadSheetSync, runSheetSync, saveSheetSync, SheetSyncError, startOf } from '../services/sheet-sync';
 
 export const admin = new Hono<AppContext>();
 admin.use('*', requireAdmin);
@@ -70,10 +71,12 @@ admin.get('/dashboard', async (c) => {
     c.env.DB.prepare(`SELECT id, number, name, topic, created_at FROM support_requests WHERE status != 'closed' ORDER BY created_at DESC LIMIT 10`),
   ]);
   const productStats = await c.env.DB.prepare(`SELECT status, COUNT(*) AS n FROM products GROUP BY status`).all<{ status: string; n: number }>();
+  const sheet = await loadSheetSync(c.env);
   return c.json({
     now: t, counts: counts.results[0], revenue: revenue.results[0], proofs: proofs.results, awaiting_delivery: awaiting.results,
     attention: failed.results, support: support.results, products: Object.fromEntries(productStats.results.map((r) => [r.status, r.n])),
     blockers: checkoutBlockers(s), accepting_orders: s.store.accepting_orders,
+    sheet_sync: { enabled: sheet.config.enabled, connected: (await googleConnected(c.env)).connected, last_success_at: sheet.state.last_success_at, last_error: sheet.state.last_error },
   });
 });
 
@@ -94,13 +97,15 @@ admin.get('/orders', async (c) => {
   else if (view === 'delivered') where.push(`fulfillment_status = 'delivered'`);
   else if (view === 'refunds') where.push(`payment_status IN ('refund_requested','refunded')`);
   else if (view === 'cancelled') where.push(`payment_status = 'cancelled'`);
+  else if (view === 'website') where.push(`source = 'website'`);
+  else if (view === 'sheet') where.push(`source = 'sheet'`);
   if (q) {
     where.push(`(number LIKE ? OR customer_email LIKE ? OR customer_name LIKE ? OR customer_whatsapp LIKE ? OR verified_reference LIKE ?)`);
     const like = `%${q.replace(/[%_]/g, '')}%`;
     params.push(like.toUpperCase(), like.toLowerCase(), like, like.replace(/\s/g, ''), like);
   }
   const order = view === 'to_deliver' || view === 'overdue' ? 'delivery_due_at ASC' : view === 'proofs' ? 'updated_at ASC' : 'created_at DESC';
-  const sql = `SELECT id, number, customer_name, customer_email, customer_whatsapp, total_piastres, payment_status, fulfillment_status, payment_method_id, delivery_due_at, created_at, updated_at
+  const sql = `SELECT id, number, source, source_ref, verified_amount_piastres, customer_name, customer_email, customer_whatsapp, total_piastres, payment_status, fulfillment_status, payment_method_id, delivery_due_at, created_at, updated_at
     FROM orders ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ${order} LIMIT ? OFFSET ?`;
   const rows = await c.env.DB.prepare(sql).bind(...params, limit, offset).all();
   return c.json({ orders: rows.results, now: now() });
@@ -126,7 +131,7 @@ admin.get('/orders/:id', async (c) => {
     events: (events.results as any[]).map((e) => ({ ...e, data: parseJSON(e.data, {}) })),
     notifications: notes.results,
     payment_method: s.payments.methods.find((m) => m.id === o.payment_method_id) ?? null,
-    tracking_url: o.access_enc === 'deleted' ? null : await orderLink(c.env, o),
+    tracking_url: o.access_enc === 'deleted' || (o as any).source === 'sheet' ? null : await orderLink(c.env, o),
     timezone: s.schedule.timezone,
   });
 });
@@ -540,7 +545,14 @@ admin.post('/import/products', async (c) => {
   if (!rows.length) throw bad('empty_csv');
   const missing = PRODUCT_CSV_COLUMNS.filter((col) => !(col in rows[0]));
   if (missing.length) throw bad('missing_columns', `Missing columns: ${missing.join(', ')}`);
-  const cats = new Map(((await c.env.DB.prepare('SELECT id, slug FROM categories').all<any>()).results).map((r: any) => [r.slug, r.id]));
+  // Look everything up once: a per-row query would exceed the Worker's per-request query limit on a large catalogue.
+  const [catRows, prodRows, planRows] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT id, slug FROM categories'), c.env.DB.prepare('SELECT id, slug, status FROM products'), c.env.DB.prepare('SELECT id, product_id FROM plans'),
+  ]);
+  const cats = new Map((catRows.results as any[]).map((r) => [r.slug, r.id]));
+  const prodById = new Map((prodRows.results as any[]).map((r) => [r.id as string, r as { id: string; slug: string; status: string }]));
+  const prodBySlug = new Map((prodRows.results as any[]).map((r) => [r.slug as string, r as { id: string; slug: string; status: string }]));
+  const planKeys = new Set((planRows.results as any[]).map((r) => `${r.id}|${r.product_id}`));
   const errors: string[] = [];
   const stmts: D1PreparedStatement[] = [];
   const statusRequests = new Map<string, string>();
@@ -549,7 +561,7 @@ admin.post('/import/products', async (c) => {
   const seenProducts = new Set<string>();
   for (const [i, r] of rows.entries()) {
     const line = i + 2;
-    const product = (await c.env.DB.prepare('SELECT id FROM products WHERE id = ? OR slug = ?').bind(r.product_id, r.slug).first<{ id: string }>());
+    const product = prodById.get(r.product_id) ?? prodBySlug.get(r.slug);
     if (!product) { errors.push(`Row ${line}: product "${r.product_id || r.slug}" not found (create new products in the editor).`); continue; }
     const catId = cats.get(r.category);
     if (!catId) { errors.push(`Row ${line}: unknown category "${r.category}".`); continue; }
@@ -558,7 +570,7 @@ admin.post('/import/products', async (c) => {
       seenProducts.add(product.id);
       productUpdates++;
       stmts.push(c.env.DB.prepare('UPDATE products SET category_id = ?, brand = ?, title_ar = ?, title_en = ?, supply_status = ?, updated_at = ? WHERE id = ?').bind(catId, r.brand, r.title_ar, r.title_en, r.supply_status, t, product.id));
-      if (['draft', 'published', 'archived'].includes(r.product_status)) statusRequests.set(product.id, r.product_status);
+      if (['draft', 'published', 'archived'].includes(r.product_status) && r.product_status !== product.status) statusRequests.set(product.id, r.product_status);
     }
     if (!r.plan_name_en && !r.plan_id) continue;
     const price = r.price_egp ? parseEGP(r.price_egp) : null;
@@ -573,7 +585,7 @@ admin.post('/import/products', async (c) => {
     const du = perpetual || !r.duration_unit ? null : r.duration_unit;
     if (du && !['day', 'month', 'year'].includes(du)) { errors.push(`Row ${line}: invalid duration_unit.`); continue; }
     const vals = [r.plan_name_ar, r.plan_name_en, r.plan_type, dv, du, perpetual ? 1 : 0, price, r.plan_status, r.availability, Math.min(Math.max(Number(r.max_qty) || 1, 1), 20), r.guarantee_kind, r.guarantee_kind === 'days' ? Number(r.guarantee_days) || null : null, t];
-    const existingPlan = r.plan_id ? await c.env.DB.prepare('SELECT id FROM plans WHERE id = ? AND product_id = ?').bind(r.plan_id, product.id).first() : null;
+    const existingPlan = r.plan_id && planKeys.has(`${r.plan_id}|${product.id}`);
     if (existingPlan) {
       planUpdates++;
       stmts.push(c.env.DB.prepare('UPDATE plans SET name_ar=?, name_en=?, plan_type=?, duration_value=?, duration_unit=?, is_perpetual=?, price_piastres=?, status=?, availability=?, max_qty=?, guarantee_kind=?, guarantee_days=?, updated_at=? WHERE id = ?').bind(...vals, r.plan_id));
@@ -586,13 +598,28 @@ admin.post('/import/products', async (c) => {
   if (b.dry_run || errors.length) return c.json({ applied: false, ...summary });
   // Products currently published are first set to draft-safe state only if they become invalid.
   if (stmts.length) await c.env.DB.batch(stmts);
-  const statusResults = [];
-  for (const [id, st] of statusRequests) statusResults.push(await setStatus(c, id, st as any));
+  // Status changes and publish checks, computed in memory from one read of the updated catalogue.
+  const [allProds, allPlans] = await c.env.DB.batch([c.env.DB.prepare('SELECT * FROM products'), c.env.DB.prepare('SELECT * FROM plans ORDER BY sort')]);
+  const plansOf = new Map<string, PlanRow[]>();
+  for (const pl of allPlans.results as PlanRow[]) { const l = plansOf.get(pl.product_id); if (l) l.push(pl); else plansOf.set(pl.product_id, [pl]); }
+  const byId = new Map((allProds.results as ProductRow[]).map((p) => [p.id, p]));
+  const statusResults: Array<{ id: string; ok: boolean; problems: string[] }> = [];
+  const after: D1PreparedStatement[] = [];
   for (const id of seenProducts) {
-    if (statusRequests.get(id) === 'published') continue;
-    const { p, plans } = await loadProductFull(c, id);
-    if (p.status === 'published' && publishProblems(p, plans).length) await c.env.DB.prepare(`UPDATE products SET status = 'draft' WHERE id = ?`).bind(id).run();
+    const p = byId.get(id);
+    if (!p) continue;
+    const problems = publishProblems(p, plansOf.get(id) ?? []);
+    const want = statusRequests.get(id);
+    if (want) {
+      if (want === 'published' && problems.length) { statusResults.push({ id, ok: false, problems }); continue; }
+      after.push(c.env.DB.prepare(`UPDATE products SET status = ?, published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, ?) ELSE published_at END, updated_at = ? WHERE id = ?`).bind(want, want, t, t, id));
+      after.push(c.env.DB.prepare('INSERT INTO audit_log (actor, action, entity, entity_id, data, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind(actor(c), `product_${want}`, 'product', id, '{}', t));
+      statusResults.push({ id, ok: true, problems: [] });
+      if (want === 'published') continue;
+    }
+    if ((want ?? p.status) === 'published' && problems.length) after.push(c.env.DB.prepare(`UPDATE products SET status = 'draft' WHERE id = ?`).bind(id));
   }
+  if (after.length) await c.env.DB.batch(after);
   await audit(c.env, actor(c), 'products_imported', 'product', '', summary);
   return c.json({ applied: true, ...summary, status_results: statusResults.filter((r) => !r.ok) });
 });
@@ -602,7 +629,7 @@ admin.get('/export/orders.csv', async (c) => {
   const fmt = (t: number | null) => (t ? (() => { const p = localParts(t, tz); return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')} ${String(p.hh).padStart(2, '0')}:${String(p.mm).padStart(2, '0')}`; })() : '');
   const rows = (await c.env.DB.prepare(`SELECT o.*, (SELECT GROUP_CONCAT(product_title_en || ' — ' || plan_name_en || ' x' || qty, ' | ') FROM order_items WHERE order_id = o.id) AS items FROM orders o ORDER BY created_at DESC`).all<any>()).results;
   const out = rows.map((o) => ({
-    number: o.number, created_cairo: fmt(o.created_at), customer_name: o.customer_name, customer_email: o.customer_email, customer_whatsapp: o.customer_whatsapp,
+    number: o.number, source: o.source, created_cairo: fmt(o.created_at), customer_name: o.customer_name, customer_email: o.customer_email, customer_whatsapp: o.customer_whatsapp,
     items: o.items, total_egp: piastresToEGPString(o.total_piastres), payment_method: o.payment_method_id, payment_status: o.payment_status, fulfillment_status: o.fulfillment_status,
     verified_amount_egp: piastresToEGPString(o.verified_amount_piastres), verified_reference: o.verified_reference ?? '', verified_cairo: fmt(o.verified_at),
     delivery_due_cairo: fmt(o.delivery_due_at), delivered_cairo: fmt(o.delivered_at), refund_amount_egp: piastresToEGPString(o.refund_amount_piastres), refunded_cairo: fmt(o.refunded_at),
@@ -826,6 +853,61 @@ admin.post('/privacy/erase', async (c) => {
   const r = await eraseCustomerData(c.env, actor(c), b);
   await audit(c.env, actor(c), 'personal_data_erased', 'customer', b.order_id ?? '', { orders: r.anonymized, skipped: r.skipped });
   return c.json(r);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Sales & cashier-sheet import
+// ---------------------------------------------------------------------------------------------
+admin.get('/sales', async (c) => {
+  const days = Number(c.req.query('days') ?? 30);
+  const from = days > 0 ? now() - days * 86_400_000 : 0;
+  const PAID = `o.payment_status IN ('verified','refund_requested','refunded')`;
+  const [bySource, byProduct, byMonth] = await c.env.DB.batch([
+    c.env.DB.prepare(`SELECT o.source, COUNT(*) AS orders, COALESCE(SUM(o.verified_amount_piastres), 0) AS revenue FROM orders o WHERE ${PAID} AND o.verified_at >= ? GROUP BY o.source`).bind(from),
+    c.env.DB.prepare(`SELECT i.product_id, MAX(i.product_title_en) AS title, SUM(i.qty) AS units, COUNT(DISTINCT i.order_id) AS orders, SUM(i.line_total_piastres) AS value,
+      SUM(CASE WHEN o.source = 'sheet' THEN i.qty ELSE 0 END) AS sheet_units, SUM(CASE WHEN o.source = 'website' THEN i.qty ELSE 0 END) AS website_units
+      FROM order_items i JOIN orders o ON o.id = i.order_id WHERE ${PAID} AND o.verified_at >= ? GROUP BY i.product_id ORDER BY value DESC LIMIT 300`).bind(from),
+    c.env.DB.prepare(`SELECT strftime('%Y-%m', o.verified_at / 1000, 'unixepoch', '+3 hours') AS month, o.source, COUNT(*) AS orders, COALESCE(SUM(o.verified_amount_piastres), 0) AS revenue
+      FROM orders o WHERE ${PAID} AND o.verified_at >= ? GROUP BY month, o.source ORDER BY month DESC LIMIT 48`).bind(from),
+  ]);
+  return c.json({ from, by_source: bySource.results, by_product: byProduct.results, by_month: byMonth.results });
+});
+
+admin.get('/sheet-sync', async (c) => {
+  const { config, state } = await loadSheetSync(c.env);
+  const runs = (await c.env.DB.prepare('SELECT * FROM sheet_sync_runs ORDER BY id DESC LIMIT 25').all()).results;
+  const counts = await c.env.DB.prepare(`SELECT COUNT(*) AS orders, COALESCE(SUM(verified_amount_piastres), 0) AS revenue, MIN(created_at) AS first_at, MAX(created_at) AS last_at FROM orders WHERE source = 'sheet'`).first();
+  return c.json({ config, state, connected: (await googleConnected(c.env)).connected, runs, totals: counts });
+});
+
+admin.put('/sheet-sync', async (c) => {
+  const b = await body(c, z.object({
+    enabled: z.boolean(),
+    spreadsheet_id: z.string().trim().regex(/^[A-Za-z0-9_-]{20,80}$/, 'Paste the ID from the sheet URL'),
+    sheet_name: z.string().trim().min(1).max(100),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    run_hour: z.number().int().min(0).max(23),
+  }));
+  const cur = await loadSheetSync(c.env);
+  const config = { ...cur.config, ...b };
+  // A new sheet or an earlier start date needs a fresh pass from the start (already-imported rows are skipped).
+  const restart = b.spreadsheet_id !== cur.config.spreadsheet_id || b.sheet_name !== cur.config.sheet_name || startOf(b.start_date, config.timezone) < startOf(cur.config.start_date, config.timezone);
+  const state = restart ? { ...cur.state, cursor: null, next_from: null, backfill_done: false, last_error: null } : cur.state;
+  await saveSheetSync(c.env, { config, state }, actor(c));
+  await audit(c.env, actor(c), 'sheet_sync_settings_updated', 'settings', 'sheet_sync', { ...b, restart });
+  return c.json({ config, state, restart });
+});
+
+admin.post('/sheet-sync/run', async (c) => {
+  await enforceRate(c.env, `sheet-sync:${c.get('admin').id}`, 20, 3600_000);
+  try {
+    const r = await runSheetSync(c.env, actor(c), 3);
+    await audit(c.env, actor(c), 'sheet_sync_run', 'settings', 'sheet_sync', r);
+    return c.json(r);
+  } catch (e) {
+    if (e instanceof SheetSyncError) throw new HttpError(e.code === 'not_connected' ? 409 : 502, e.code, e.message);
+    throw e;
+  }
 });
 
 admin.post('/system/run-jobs', async (c) => {

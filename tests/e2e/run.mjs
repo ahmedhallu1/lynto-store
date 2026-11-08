@@ -69,7 +69,19 @@ function d1(sql) {
 const PNG = Buffer.from('89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C4890000000D49444154789C6360F8CFC0F01F0005FF02FEA7E1B8C60000000049454E44AE426082', 'hex');
 
 // ---------------------------------------------------------------- mock providers
-const mock = { mode: 'ok', calls: [], flows: [], templates: [] };
+const mock = { mode: 'ok', calls: [], flows: [], templates: [], sheet: [], googleRevoked: false };
+// Minimal Google Visualization query emulation for the cashier-sheet import: credits of type Transactions, date >= literal, ordered, limited.
+function gvizResponse(url) {
+  const tq = new URL('http://x' + url).searchParams.get('tq') ?? '';
+  const lit = tq.match(/datetime '(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)'/);
+  const limit = Number(tq.match(/limit (\d+)/)?.[1] ?? 1e9);
+  const key = (d) => d.map((n) => String(n).padStart(4, '0')).join('');
+  const from = lit ? key([+lit[1], +lit[2] - 1, +lit[3], +lit[4], +lit[5], +lit[6]]) : '';
+  const rows = mock.sheet.filter((r) => r.credit === 'Credit' && r.type === 'Transactions' && key(r.d) >= from).sort((a, b) => key(a.d).localeCompare(key(b.d))).slice(0, limit);
+  const table = { cols: [{ id: 'A', type: 'datetime' }, { id: 'B', type: 'string' }, { id: 'C', type: 'number' }, { id: 'I', type: 'string' }],
+    rows: rows.map((r) => ({ c: [{ v: `Date(${r.d.join(',')})` }, { v: r.wallet }, { v: r.amount }, r.trx === null ? null : { v: r.trx }] })) };
+  return `/*O_o*/\ngoogle.visualization.Query.setResponse(${JSON.stringify({ version: '0.6', status: 'ok', table })});`;
+}
 function startMock() {
   return new Promise((resolve) => {
     const srv = http.createServer((rq, rs) => {
@@ -82,6 +94,11 @@ function startMock() {
         if (mock.mode === 'fail400') return send(400, { message: 'invalid recipient (mock)', error: { message: 'invalid (mock)' } });
         if (mock.mode === 'fail500') return send(500, { message: 'provider down (mock)' });
         if (rq.url === '/emails') return send(200, { id: 'mock-email-' + mock.calls.length });
+        if (rq.url === '/google/token') return mock.googleRevoked ? send(400, { error: 'invalid_grant', error_description: 'Token has been expired or revoked.' }) : send(200, { access_token: 'mock-google-at', expires_in: 3599 });
+        if (rq.url.startsWith('/google/sheets/')) {
+          if (rq.headers.authorization !== 'Bearer mock-google-at') return send(401, {});
+          rs.writeHead(200, { 'content-type': 'application/javascript' }); return rs.end(gvizResponse(rq.url));
+        }
         const u = rq.url.split('?')[0];
         if (/\/flows$/.test(u)) {
           if (rq.method === 'GET') return send(200, { data: mock.flows });
@@ -733,6 +750,55 @@ async function main() {
     eq(apply.json.applied, true, 'applied');
     eq((await P.get(`/products/${T.sub.slug}`)).status, 200, 'published product still published after import');
   });
+
+  // ------------------------------------------------------------ cashier-sheet import (Google mocked)
+  if (LOCAL) {
+    await test('cashier sheet import: whole credits only, matched to products, no customer data, no duplicates', async () => {
+      eq((await A.post('/sheet-sync/run')).json?.error, 'not_connected', 'refuses before Google is connected');
+      for (const [k, v] of [['google_client_id', 'mock-client.apps.googleusercontent.com'], ['google_client_secret', 'mock-secret-value'], ['google_refresh_token', 'mock-refresh-token']]) eq((await A.put('/secrets/' + k, { value: v })).status, 200, k);
+      eq((await A.put('/sheet-sync', { enabled: true, spreadsheet_id: 'mockSheetId_0123456789abcdef', sheet_name: 'Transactions', start_date: '2026-08-01', run_hour: 3 })).status, 200, 'settings');
+      const row = (d, amount, extra = {}) => ({ d, wallet: 'Ahmed main AX', amount, trx: 'trx' + mock.sheet.length, credit: 'Credit', type: 'Transactions', ...extra });
+      mock.sheet.push(
+        row([2026, 7, 2, 10, 5, 0], 1180), row([2026, 7, 2, 11, 0, 0], 1525.5), row([2026, 7, 3, 9, 0, 0], 900, { credit: 'Debit' }),
+        row([2026, 6, 30, 9, 0, 0], 500), row([2026, 7, 4, 12, 0, 0], 480), row([2026, 7, 4, 13, 0, 0], 700, { type: 'Transfers' }),
+        row([2026, 7, 5, 14, 30, 0], 350, { trx: null }), row([2026, 7, 5, 14, 30, 0], 350, { trx: null }),
+      );
+      const r1 = await A.post('/sheet-sync/run');
+      eq(r1.status, 200, JSON.stringify(r1.json)); eq(r1.json.imported, 4, 'imported (1180, 480, 350, 350)');
+      const list = (await A.get('/orders?view=sheet&limit=200')).json.orders;
+      eq(list.length, 4, 'sheet orders listed');
+      for (const o of list) {
+        assert(o.number.startsWith('LS-'), 'LS- number'); eq(o.customer_name, '', 'no name'); eq(o.customer_email, '', 'no email'); eq(o.customer_whatsapp, '', 'no phone');
+        eq(o.payment_status, 'verified', 'paid'); eq(o.fulfillment_status, 'delivered', 'delivered');
+      }
+      const big = list.find((o) => o.verified_amount_piastres === 118000);
+      assert(big, 'received amount kept');
+      const d = (await A.get('/orders/' + big.id)).json;
+      eq(d.tracking_url, null, 'no customer link'); eq(d.notifications.length, 0, 'no notifications'); assert(d.items.length >= 1 && d.items.length <= 3, '1–3 items');
+      assert(d.events.some((e) => e.type === 'imported_from_sheet'), 'import event');
+      eq((await A.post('/sheet-sync/run')).json.imported, 0, 're-run imports nothing new');
+      mock.sheet.push(row([2026, 7, 6, 8, 0, 0], 2600));
+      eq((await A.post('/sheet-sync/run')).json.imported, 1, 'a late row inside the look-back window is picked up');
+      const sales = (await A.get('/sales?days=0')).json;
+      assert(sales.by_source.some((x) => x.source === 'sheet' && x.orders === 5), 'sales by source');
+      assert(sales.by_product.some((p) => p.sheet_units > 0), 'per-product sheet units');
+    });
+    await test('cashier sheet import pages through large backfills and reports revoked Google access', async () => {
+      for (let i = 0; i < 320; i++) mock.sheet.push({ d: [2026, 8, 1 + (i % 28), 8 + Math.floor(i / 28), i % 60, 0], wallet: 'W' + (i % 3), amount: 97 + i * 13, trx: 'bulk' + i, credit: 'Credit', type: 'Transactions' });
+      const before = (await A.get('/sheet-sync')).json.totals.orders;
+      const r = await A.post('/sheet-sync/run');
+      eq(r.status, 200, JSON.stringify(r.json)); assert(r.json.chunks >= 2, 'more than one chunk'); eq(r.json.done, true, 'caught up');
+      eq((await A.get('/sheet-sync')).json.totals.orders - before, 320, 'all bulk rows imported once');
+      mock.googleRevoked = true;
+      const bad = await A.post('/sheet-sync/run');
+      eq(bad.status, 502, 'error status'); eq(bad.json.error, 'reconnect', 'reconnect code');
+      const st = (await A.get('/sheet-sync')).json.state;
+      assert(st.last_error && st.last_error.includes('reconnect'), 'error stored');
+      assert((await A.get('/dashboard')).json.sheet_sync.last_error, 'dashboard shows the failure');
+      mock.googleRevoked = false;
+      eq((await A.post('/sheet-sync/run')).status, 200, 'recovers');
+    });
+  }
 
   // ------------------------------------------------------------ security headers & abuse limits
   await test('security headers on HTML; admin shell is noindex', async () => {

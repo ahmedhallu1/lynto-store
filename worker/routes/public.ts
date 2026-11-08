@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { AppContext } from '../env';
 import { loadSettings, toPublicSettings } from '../lib/settings';
 import { bad, clientIp, enforceRate, ipHash, notFound, normalizePhone, now, HttpError } from '../lib/util';
-import { getPublishedProduct, listCategories, listPublishedProducts } from '../services/catalog';
+import { getPublishedProduct, listCategories, listPublishedProducts, listPublishedProductCards } from '../services/catalog';
 import { cancelOrder, changePaymentMethod, createOrder, customerOrderView, orderByToken, quote, submitProof } from '../services/orders';
 import { dispatchPending } from '../services/notifications';
 import { createSupportRequest } from '../services/support';
@@ -12,20 +12,24 @@ export const publicRoutes = new Hono<AppContext>();
 
 publicRoutes.get('/bootstrap', async (c) => {
   const s = await loadSettings(c.env);
-  const products = await listPublishedProducts(c.env);
-  const categories = await listCategories(c.env, products);
+  const [featured, categories] = await Promise.all([
+    listPublishedProductCards(c.env, { featured: true, limit: 8 }), listCategories(c.env),
+  ]);
   c.header('cache-control', 'no-store');
-  return c.json({ settings: toPublicSettings(s), categories, featured: products.filter((p) => p.featured).slice(0, 8), product_count: products.length });
+  c.header('x-robots-tag', 'noindex');
+  return c.json({ settings: toPublicSettings(s), categories, featured, product_count: categories.reduce((n, cat) => n + cat.product_count, 0) });
 });
 
 publicRoutes.get('/products', async (c) => {
-  const products = await listPublishedProducts(c.env);
+  const products = c.req.query('view') === 'cards' ? await listPublishedProductCards(c.env) : await listPublishedProducts(c.env);
+  c.header('x-robots-tag', 'noindex');
   return c.json({ products });
 });
 
 publicRoutes.get('/products/:slug', async (c) => {
   const p = await getPublishedProduct(c.env, c.req.param('slug'));
   if (!p) throw notFound('product_not_found');
+  c.header('x-robots-tag', 'noindex');
   return c.json({ product: p });
 });
 

@@ -6,6 +6,7 @@ import { Logo } from '../components/Layout';
 import { Alert, Button, Field, Input, Spinner, cx } from '../components/ui';
 import { usePageTitle } from '../components/usePageTitle';
 import { Dashboard } from './Dashboard';
+import { SalesPage } from './Sales';
 import { OrdersList, OrderDetail } from './Orders';
 import { ProductsList } from './Products';
 import { ProductEditor } from './ProductEditor';
@@ -20,6 +21,7 @@ type Status = { admin_exists: boolean; setup_available: boolean; signed_in: bool
 const NAV = [
   { to: '/admin', label: 'Dashboard' },
   { to: '/admin/orders', label: 'Orders' },
+  { to: '/admin/sales', label: 'Sales' },
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/pricing', label: 'Pricing' },
   { to: '/admin/inbox', label: 'Notifications & support' },
@@ -120,6 +122,7 @@ function Shell({ status, onSignOut }: { status: Status; onSignOut: () => void })
   if (pathname === '/admin' || pathname === '/admin/') page = <Dashboard />;
   else if (pathname === '/admin/orders') page = <OrdersList />;
   else if ((m = match('/admin/orders/:id', pathname))) page = <OrderDetail key={m.id} id={m.id} />;
+  else if (pathname === '/admin/sales') page = <SalesPage />;
   else if (pathname === '/admin/products') page = <ProductsList />;
   else if (pathname === '/admin/products/new') page = <ProductEditor key="new" id={null} />;
   else if ((m = match('/admin/products/:id', pathname))) page = <ProductEditor key={m.id} id={m.id} />;

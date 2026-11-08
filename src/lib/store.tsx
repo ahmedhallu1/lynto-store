@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { PublicCategory, PublicProduct, PublicSettings } from '../../shared/types';
+import type { PublicCategory, PublicProductCard, PublicSettings } from '../../shared/types';
 import { api } from './api';
 
-type Bootstrap = { settings: PublicSettings; categories: PublicCategory[]; featured: PublicProduct[]; product_count: number };
+type Bootstrap = { settings: PublicSettings; categories: PublicCategory[]; featured: PublicProductCard[]; product_count: number };
 type Ctx = { data: Bootstrap | null; error: boolean; reload: () => void };
 const StoreCtx = createContext<Ctx>({ data: null, error: false, reload: () => {} });
 
@@ -19,8 +19,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 export const useStore = () => useContext(StoreCtx);
 
 // Simple cached product list for catalog/product pages.
-let productsPromise: Promise<PublicProduct[]> | null = null;
+let productsPromise: Promise<PublicProductCard[]> | null = null;
 export function fetchProducts(force = false) {
-  if (!productsPromise || force) productsPromise = api.get<{ products: PublicProduct[] }>('/api/public/products').then((r) => r.products).catch((e) => { productsPromise = null; throw e; });
+  if (!productsPromise || force) productsPromise = api.get<{ products: PublicProductCard[] }>('/api/public/products?view=cards').then((r) => r.products).catch((e) => { productsPromise = null; throw e; });
   return productsPromise;
 }

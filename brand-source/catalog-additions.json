@@ -1,0 +1,1072 @@
+{
+  "products": [
+    {
+      "slug": "microsoft-copilot-pro",
+      "title_ar": "اشتراك Microsoft Copilot Pro",
+      "title_en": "Microsoft Copilot Pro subscription",
+      "brand": "Microsoft",
+      "icon_text": "CP",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "poe",
+      "title_ar": "اشتراك Poe",
+      "title_en": "Poe subscription",
+      "brand": "Quora",
+      "icon_text": "POE",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "character-ai-plus",
+      "title_ar": "اشتراك c.ai+",
+      "title_en": "Character.AI c.ai+ subscription",
+      "brand": "Character.AI",
+      "icon_text": "C.AI",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "leonardo-ai",
+      "title_ar": "اشتراك Leonardo AI",
+      "title_en": "Leonardo AI subscription",
+      "brand": "Leonardo.Ai",
+      "icon_text": "LEO",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "ideogram",
+      "title_ar": "اشتراك Ideogram",
+      "title_en": "Ideogram subscription",
+      "brand": "Ideogram",
+      "icon_text": "IDG",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "kling-ai",
+      "title_ar": "اشتراك Kling AI",
+      "title_en": "Kling AI subscription",
+      "brand": "Kling",
+      "icon_text": "KL",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "heygen",
+      "title_ar": "اشتراك HeyGen",
+      "title_en": "HeyGen subscription",
+      "brand": "HeyGen",
+      "icon_text": "HG",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "synthesia",
+      "title_ar": "اشتراك Synthesia",
+      "title_en": "Synthesia subscription",
+      "brand": "Synthesia",
+      "icon_text": "SY",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "gamma-app",
+      "title_ar": "اشتراك Gamma",
+      "title_en": "Gamma subscription",
+      "brand": "Gamma",
+      "icon_text": "GM",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "otter-ai",
+      "title_ar": "اشتراك Otter.ai",
+      "title_en": "Otter.ai subscription",
+      "brand": "Otter.ai",
+      "icon_text": "OT",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "descript",
+      "title_ar": "اشتراك Descript",
+      "title_en": "Descript subscription",
+      "brand": "Descript",
+      "icon_text": "DS",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "replit-core",
+      "title_ar": "اشتراك Replit Core",
+      "title_en": "Replit Core subscription",
+      "brand": "Replit",
+      "icon_text": "RP",
+      "accent": "#F26207",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "windsurf",
+      "title_ar": "اشتراك Windsurf",
+      "title_en": "Windsurf subscription",
+      "brand": "Windsurf",
+      "icon_text": "WS",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "lovable",
+      "title_ar": "اشتراك Lovable",
+      "title_en": "Lovable subscription",
+      "brand": "Lovable",
+      "icon_text": "LV",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "v0",
+      "title_ar": "اشتراك v0",
+      "title_en": "v0 subscription",
+      "brand": "Vercel",
+      "icon_text": "v0",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "أدوات الذكاء الاصطناعي",
+        "name_en": "AI tools & subscriptions"
+      }
+    },
+    {
+      "slug": "capcut-pro",
+      "title_ar": "اشتراك CapCut Pro",
+      "title_en": "CapCut Pro subscription",
+      "brand": "CapCut",
+      "icon_text": "CC",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "adobe-lightroom",
+      "title_ar": "اشتراك Adobe Lightroom",
+      "title_en": "Adobe Lightroom subscription",
+      "brand": "Adobe",
+      "icon_text": "LR",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "adobe-illustrator",
+      "title_ar": "اشتراك Adobe Illustrator",
+      "title_en": "Adobe Illustrator subscription",
+      "brand": "Adobe",
+      "icon_text": "AI",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "adobe-after-effects",
+      "title_ar": "اشتراك Adobe After Effects",
+      "title_en": "Adobe After Effects subscription",
+      "brand": "Adobe",
+      "icon_text": "AE",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "adobe-express",
+      "title_ar": "اشتراك Adobe Express",
+      "title_en": "Adobe Express subscription",
+      "brand": "Adobe",
+      "icon_text": "AX",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "envato-elements",
+      "title_ar": "اشتراك Envato Elements",
+      "title_en": "Envato Elements subscription",
+      "brand": "Envato",
+      "icon_text": "EN",
+      "accent": "#82B541",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "freepik-premium",
+      "title_ar": "اشتراك Freepik Premium",
+      "title_en": "Freepik Premium subscription",
+      "brand": "Freepik",
+      "icon_text": "FP",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "autocad",
+      "title_ar": "اشتراك AutoCAD",
+      "title_en": "AutoCAD subscription",
+      "brand": "Autodesk",
+      "icon_text": "CAD",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "autodesk-maya",
+      "title_ar": "اشتراك Autodesk Maya",
+      "title_en": "Autodesk Maya subscription",
+      "brand": "Autodesk",
+      "icon_text": "MAY",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "sketchup-pro",
+      "title_ar": "اشتراك SketchUp Pro",
+      "title_en": "SketchUp Pro subscription",
+      "brand": "Trimble",
+      "icon_text": "SU",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "coreldraw",
+      "title_ar": "CorelDRAW Graphics Suite",
+      "title_en": "CorelDRAW Graphics Suite",
+      "brand": "Corel",
+      "icon_text": "CDR",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "parallels-desktop",
+      "title_ar": "اشتراك Parallels Desktop",
+      "title_en": "Parallels Desktop subscription",
+      "brand": "Parallels",
+      "icon_text": "||",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "cleanmymac",
+      "title_ar": "اشتراك CleanMyMac",
+      "title_en": "CleanMyMac subscription",
+      "brand": "MacPaw",
+      "icon_text": "CMM",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "kaspersky",
+      "title_ar": "Kaspersky (حماية)",
+      "title_en": "Kaspersky security",
+      "brand": "Kaspersky",
+      "icon_text": "KAS",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "norton-360",
+      "title_ar": "Norton 360",
+      "title_en": "Norton 360",
+      "brand": "Norton",
+      "icon_text": "N360",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "bitdefender",
+      "title_ar": "Bitdefender (حماية)",
+      "title_en": "Bitdefender security",
+      "brand": "Bitdefender",
+      "icon_text": "BD",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "proton-unlimited",
+      "title_ar": "اشتراك Proton Unlimited",
+      "title_en": "Proton Unlimited subscription",
+      "brand": "Proton",
+      "icon_text": "PRO",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "microsoft-visio",
+      "title_ar": "Microsoft Visio Professional 2024",
+      "title_en": "Microsoft Visio Professional 2024",
+      "brand": "Microsoft",
+      "icon_text": "VSD",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "microsoft-project",
+      "title_ar": "Microsoft Project Professional 2024",
+      "title_en": "Microsoft Project Professional 2024",
+      "brand": "Microsoft",
+      "icon_text": "PRJ",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "visual-studio-pro",
+      "title_ar": "اشتراك Visual Studio Professional",
+      "title_en": "Visual Studio Professional subscription",
+      "brand": "Microsoft",
+      "icon_text": "VS",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "linkedin-premium",
+      "title_ar": "اشتراك LinkedIn Premium",
+      "title_en": "LinkedIn Premium subscription",
+      "brand": "LinkedIn",
+      "icon_text": "in",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "udemy-personal-plan",
+      "title_ar": "اشتراك Udemy Personal Plan",
+      "title_en": "Udemy Personal Plan subscription",
+      "brand": "Udemy",
+      "icon_text": "U",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "skillshare",
+      "title_ar": "اشتراك Skillshare",
+      "title_en": "Skillshare subscription",
+      "brand": "Skillshare",
+      "icon_text": "SK",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "babbel",
+      "title_ar": "اشتراك Babbel",
+      "title_en": "Babbel subscription",
+      "brand": "Babbel",
+      "icon_text": "BB",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "quizlet-plus",
+      "title_ar": "اشتراك Quizlet Plus",
+      "title_en": "Quizlet Plus subscription",
+      "brand": "Quizlet",
+      "icon_text": "Q",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "chegg-study",
+      "title_ar": "اشتراك Chegg Study",
+      "title_en": "Chegg Study subscription",
+      "brand": "Chegg",
+      "icon_text": "CH",
+      "accent": "#F26207",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "audible",
+      "title_ar": "اشتراك Audible",
+      "title_en": "Audible subscription",
+      "brand": "Amazon",
+      "icon_text": "AUD",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "kindle-unlimited",
+      "title_ar": "اشتراك Kindle Unlimited",
+      "title_en": "Kindle Unlimited subscription",
+      "brand": "Amazon",
+      "icon_text": "KU",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "quillbot-premium",
+      "title_ar": "اشتراك QuillBot Premium",
+      "title_en": "QuillBot Premium subscription",
+      "brand": "QuillBot",
+      "icon_text": "QB",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "google-workspace",
+      "title_ar": "اشتراك Google Workspace",
+      "title_en": "Google Workspace subscription",
+      "brand": "Google",
+      "icon_text": "GW",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "todoist-pro",
+      "title_ar": "اشتراك Todoist Pro",
+      "title_en": "Todoist Pro subscription",
+      "brand": "Doist",
+      "icon_text": "TD",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "evernote",
+      "title_ar": "اشتراك Evernote",
+      "title_en": "Evernote subscription",
+      "brand": "Evernote",
+      "icon_text": "EV",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "bitwarden-premium",
+      "title_ar": "اشتراك Bitwarden Premium",
+      "title_en": "Bitwarden Premium subscription",
+      "brand": "Bitwarden",
+      "icon_text": "BW",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "تصميم وإنتاجية وبرامج",
+        "name_en": "Design, productivity & software"
+      }
+    },
+    {
+      "slug": "watch-it",
+      "title_ar": "اشتراك WATCH IT",
+      "title_en": "WATCH IT subscription",
+      "brand": "WATCH IT",
+      "icon_text": "WI",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "tod",
+      "title_ar": "اشتراك TOD",
+      "title_en": "TOD subscription",
+      "brand": "beIN",
+      "icon_text": "TOD",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "starzon",
+      "title_ar": "اشتراك STARZ ON",
+      "title_en": "STARZ ON subscription",
+      "brand": "STARZ",
+      "icon_text": "STZ",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "paramount-plus",
+      "title_ar": "اشتراك Paramount+",
+      "title_en": "Paramount+ subscription",
+      "brand": "Paramount",
+      "icon_text": "P+",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "peacock",
+      "title_ar": "اشتراك Peacock",
+      "title_en": "Peacock subscription",
+      "brand": "NBCUniversal",
+      "icon_text": "PK",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "deezer-premium",
+      "title_ar": "اشتراك Deezer Premium",
+      "title_en": "Deezer Premium subscription",
+      "brand": "Deezer",
+      "icon_text": "DZ",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "tidal",
+      "title_ar": "اشتراك TIDAL",
+      "title_en": "TIDAL subscription",
+      "brand": "TIDAL",
+      "icon_text": "TDL",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "soundcloud-go",
+      "title_ar": "اشتراك SoundCloud Go+",
+      "title_en": "SoundCloud Go+ subscription",
+      "brand": "SoundCloud",
+      "icon_text": "SC",
+      "accent": "#F26207",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "apple-one",
+      "title_ar": "اشتراك Apple One",
+      "title_en": "Apple One subscription",
+      "brand": "Apple",
+      "icon_text": "1",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "apple-arcade",
+      "title_ar": "اشتراك Apple Arcade",
+      "title_en": "Apple Arcade subscription",
+      "brand": "Apple",
+      "icon_text": "ARC",
+      "accent": "#FF3B30",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "google-play-pass",
+      "title_ar": "اشتراك Google Play Pass",
+      "title_en": "Google Play Pass subscription",
+      "brand": "Google",
+      "icon_text": "PP",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "ea-play",
+      "title_ar": "اشتراك EA Play",
+      "title_en": "EA Play subscription",
+      "brand": "EA",
+      "icon_text": "EA",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "ubisoft-plus",
+      "title_ar": "اشتراك Ubisoft+",
+      "title_en": "Ubisoft+ subscription",
+      "brand": "Ubisoft",
+      "icon_text": "UBI",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "minecraft",
+      "title_ar": "لعبة Minecraft (ترخيص)",
+      "title_en": "Minecraft (licence)",
+      "brand": "Mojang",
+      "icon_text": "MC",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "اشتراكات الترفيه",
+        "name_en": "Entertainment subscriptions"
+      }
+    },
+    {
+      "slug": "spotify-gift-card",
+      "title_ar": "كارت هدايا Spotify",
+      "title_en": "Spotify gift card",
+      "brand": "Spotify",
+      "icon_text": "SP",
+      "accent": "#1ED760",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "uber-gift-card",
+      "title_ar": "كارت هدايا Uber",
+      "title_en": "Uber gift card",
+      "brand": "Uber",
+      "icon_text": "UB",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "airbnb-gift-card",
+      "title_ar": "كارت هدايا Airbnb",
+      "title_en": "Airbnb gift card",
+      "brand": "Airbnb",
+      "icon_text": "AB",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "ebay-gift-card",
+      "title_ar": "كارت هدايا eBay",
+      "title_en": "eBay gift card",
+      "brand": "eBay",
+      "icon_text": "eB",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "walmart-gift-card",
+      "title_ar": "كارت هدايا Walmart",
+      "title_en": "Walmart gift card",
+      "brand": "Walmart",
+      "icon_text": "WMT",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "target-gift-card",
+      "title_ar": "كارت هدايا Target",
+      "title_en": "Target gift card",
+      "brand": "Target",
+      "icon_text": "TGT",
+      "accent": "#FF3B30",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "bestbuy-gift-card",
+      "title_ar": "كارت هدايا Best Buy",
+      "title_en": "Best Buy gift card",
+      "brand": "Best Buy",
+      "icon_text": "BBY",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "starbucks-gift-card",
+      "title_ar": "كارت هدايا Starbucks",
+      "title_en": "Starbucks gift card",
+      "brand": "Starbucks",
+      "icon_text": "SB",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "doordash-gift-card",
+      "title_ar": "كارت هدايا DoorDash",
+      "title_en": "DoorDash gift card",
+      "brand": "DoorDash",
+      "icon_text": "DD",
+      "accent": "#FF3B30",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "sephora-gift-card",
+      "title_ar": "كارت هدايا Sephora",
+      "title_en": "Sephora gift card",
+      "brand": "Sephora",
+      "icon_text": "SEP",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "nike-gift-card",
+      "title_ar": "كارت هدايا Nike",
+      "title_en": "Nike gift card",
+      "brand": "Nike",
+      "icon_text": "NK",
+      "accent": "#C7CCD6",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "twitch-gift-card",
+      "title_ar": "كارت هدايا Twitch",
+      "title_en": "Twitch gift card",
+      "brand": "Twitch",
+      "icon_text": "TW",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "battlenet-balance",
+      "title_ar": "رصيد Battle.net",
+      "title_en": "Battle.net balance card",
+      "brand": "Blizzard",
+      "icon_text": "BN",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "league-of-legends-rp",
+      "title_ar": "كارت League of Legends",
+      "title_en": "League of Legends gift card",
+      "brand": "Riot Games",
+      "icon_text": "LoL",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "meta-quest-gift-card",
+      "title_ar": "كارت هدايا Meta Quest",
+      "title_en": "Meta Quest gift card",
+      "brand": "Meta",
+      "icon_text": "MQ",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "apex-legends-coins",
+      "title_ar": "Apex Legends Coins",
+      "title_en": "Apex Legends Coins",
+      "brand": "EA",
+      "icon_text": "APX",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "clash-of-clans-gems",
+      "title_ar": "شحن جواهر Clash of Clans",
+      "title_en": "Clash of Clans gems top-up",
+      "brand": "Supercell",
+      "icon_text": "COC",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "brawl-stars-gems",
+      "title_ar": "شحن جواهر Brawl Stars",
+      "title_en": "Brawl Stars gems top-up",
+      "brand": "Supercell",
+      "icon_text": "BS",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "clash-royale-gems",
+      "title_ar": "شحن جواهر Clash Royale",
+      "title_en": "Clash Royale gems top-up",
+      "brand": "Supercell",
+      "icon_text": "CR",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "honkai-star-rail",
+      "title_ar": "شحن Honkai: Star Rail",
+      "title_en": "Honkai: Star Rail top-up",
+      "brand": "HoYoverse",
+      "icon_text": "HSR",
+      "accent": "#8FA3FF",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "honor-of-kings",
+      "title_ar": "شحن Honor of Kings",
+      "title_en": "Honor of Kings top-up",
+      "brand": "Level Infinite",
+      "icon_text": "HOK",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "wild-rift-cores",
+      "title_ar": "شحن Wild Rift Cores",
+      "title_en": "Wild Rift Cores top-up",
+      "brand": "Riot Games",
+      "icon_text": "WR",
+      "accent": "#4F8DF5",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "8-ball-pool-cash",
+      "title_ar": "شحن 8 Ball Pool",
+      "title_en": "8 Ball Pool top-up",
+      "brand": "Miniclip",
+      "icon_text": "8BP",
+      "accent": "#34A853",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "blood-strike-gold",
+      "title_ar": "شحن Blood Strike Gold",
+      "title_en": "Blood Strike Gold top-up",
+      "brand": "NetEase",
+      "icon_text": "BLD",
+      "accent": "#FF4D4D",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "yalla-ludo-diamonds",
+      "title_ar": "شحن ألماس Yalla Ludo",
+      "title_en": "Yalla Ludo diamonds top-up",
+      "brand": "Yalla",
+      "icon_text": "YL",
+      "accent": "#F2A900",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "jawaker-tokens",
+      "title_ar": "شحن توكنز جواكر",
+      "title_en": "Jawaker tokens top-up",
+      "brand": "Jawaker",
+      "icon_text": "JWK",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    },
+    {
+      "slug": "bigo-live-diamonds",
+      "title_ar": "شحن ألماس Bigo Live",
+      "title_en": "Bigo Live diamonds top-up",
+      "brand": "BIGO",
+      "icon_text": "BG",
+      "accent": "#2FD3B0",
+      "category": {
+        "name_ar": "كروت الشحن وخدمات الدفع",
+        "name_en": "Gift cards & top-ups"
+      }
+    }
+  ]
+}

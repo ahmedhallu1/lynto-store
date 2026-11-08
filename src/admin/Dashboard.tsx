@@ -13,6 +13,7 @@ type Dash = {
   products: Record<string, number>;
   blockers: string[];
   accepting_orders: boolean;
+  sheet_sync?: { enabled: boolean; connected: boolean; last_success_at: number | null; last_error: string | null };
 };
 
 const BLOCKER_TEXT: Record<string, string> = {
@@ -46,6 +47,14 @@ export function Dashboard() {
           <Alert kind="warn" title="Checkout is closed until setup is complete">
             <ul className="mt-1 list-disc ps-5">{data.blockers.map((b) => <li key={b}>{BLOCKER_TEXT[b] ?? b}</li>)}</ul>
             <Link href="/admin/setup" className="mt-2 inline-block font-semibold text-cyan">Open setup →</Link>
+          </Alert>
+        </div>
+      )}
+      {data.sheet_sync?.enabled && (data.sheet_sync.last_error || !data.sheet_sync.connected) && (
+        <div className="mb-5">
+          <Alert kind="warn" title={data.sheet_sync.connected ? 'Cashier sheet import failed' : 'Cashier sheet import is not connected to Google'}>
+            {data.sheet_sync.last_error ?? 'Connect the Google account that owns the sheet to start importing sales.'}
+            <Link href="/admin/sales" className="mt-2 block font-semibold text-cyan">Open Sales →</Link>
           </Alert>
         </div>
       )}
