@@ -43,7 +43,7 @@ export function OrdersList() {
                   <tr key={o.id} className="border-t border-line/60 hover:bg-text/[0.04] cursor-pointer" onClick={() => navigate(`/admin/orders/${o.id}`)}>
                     <td className="p-3 whitespace-nowrap"><Link href={`/admin/orders/${o.id}`} className="font-mono text-cyan">{o.number}</Link></td>
                     <td className="p-3">{o.source === 'sheet'
-                      ? <><Badge kind="info">Cashier sheet</Badge>{o.source_ref && <div className="mt-1 font-mono text-xs text-dim">{o.source_ref}</div>}</>
+                      ? <span className="font-mono text-xs text-dim">{o.source_ref ?? '—'}</span>
                       : <>{o.customer_name}<div className="text-xs text-dim">{o.customer_whatsapp}</div></>}</td>
                     <td className="p-3 font-semibold">{egp(o.total_piastres)}{o.source === 'sheet' && o.verified_amount_piastres !== o.total_piastres && <div className="text-xs font-normal text-dim">received {egp(o.verified_amount_piastres)}</div>}</td>
                     <td className="p-3"><PayBadge s={o.payment_status} /></td>
@@ -92,13 +92,7 @@ export function OrderDetail({ id }: { id: string }) {
           <RefundPanel data={data} busy={busy} act={act} />
         </div>
         <div className="space-y-4">
-          {o.source === 'sheet' ? (
-            <Card>
-              <h2 className="font-semibold">Imported from the cashier sheet</h2>
-              <p className="mt-2 text-sm">Received <b>{egp(o.verified_amount_piastres)}</b> on {when(o.verified_at)}{o.source_ref ? <> · transaction <span className="font-mono">{o.source_ref}</span></> : null}.</p>
-              <p className="mt-1 text-sm text-muted">Matched to the nearest catalogue price{data.items.length > 1 ? 's' : ''}: items total {egp(o.total_piastres)}. No customer details are stored and no messages are sent for imported orders.</p>
-            </Card>
-          ) : (<>
+          {o.source === 'sheet' ? null : (<>
           <Card>
             <h2 className="font-semibold">Customer</h2>
             <p className="mt-2">{o.customer_name}</p>
@@ -124,11 +118,11 @@ export function OrderDetail({ id }: { id: string }) {
           </Card>
           </>)}
           <NotificationsPanel data={data} reload={reload} setMsg={setMsg} />
-          <NotesPanel id={id} initial={o.internal_notes} />
+          <NotesPanel id={id} initial={o.internal_notes?.startsWith('Imported from the cashier sheet.') ? '' : o.internal_notes} />
           <Card>
             <h2 className="font-semibold">Timeline & audit</h2>
             <ol className="mt-3 space-y-2 text-sm">
-              {data.events.map((e: any) => (
+              {data.events.filter((e: any) => e.type !== 'imported_from_sheet').map((e: any) => (
                 <li key={e.id} className="border-s border-line ps-3">
                   <p><span className={e.visibility === 'customer' ? 'text-text' : 'text-muted'}>{label(e.type)}</span> <span className="text-xs text-dim">· {e.actor} · {e.visibility}</span></p>
                   {Object.keys(e.data ?? {}).length > 0 && <p className="text-xs text-dim break-all">{JSON.stringify(e.data)}</p>}
