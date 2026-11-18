@@ -91,7 +91,7 @@ Last updated: 11 Oct 2026 (second pass: catalogue, Resend, 24/7, fonts). Legend:
 | 4 Flows (Flow JSON 7.3) created & validated; publish blocked by Meta integrity (business verification) | ⏳ |
 | Go-live automation (register → templates → flows → sync → enable) in cron | ✅ |
 | Product card images (74) for site + link previews | ✅ |
-| WhatsApp *catalog* | ⛔ intentionally not created (Meta Commerce Policy) |
+| WhatsApp *catalog* | superseded 18 Nov 2026: created at owner's explicit request (see below) |
 | Meta business verification of Lynto | ⏳ Meta review |
 
 ## Added 12 Oct 2026 (brand, themes, product detail)
@@ -121,3 +121,12 @@ email/WhatsApp providers, Pixel ID. All are entered in Admin → Setup / Product
 - Content/assets: two original bilingual guides with sources and internal links; 89 missing product cards and thumbnails added using the existing design. Product data/prices/approvals and production orders were not modified.
 - Local validation: typecheck, production build, 33 unit/DOM/SQLite tests and 10 isolated Worker integration checks passed. Full browser preview was blocked by this environment's network-interface enumeration; live deployment and runtime performance verification remain pending Cloudflare access.
 - Detailed evidence, limitations and measurement plan: `docs/SEO_GEO_2026-11-08.md`.
+
+## 18 November 2026 — checkout without payment methods, order alerts, WhatsApp catalog
+| Item | Status |
+|---|---|
+| Checkout and site show no payment methods; customers are told LYnto will contact them with payment details (order page shows a contact box; emails/guides/SEO/terms updated). Admin Setup no longer has "Payment destinations"; `no_payment_method` blocker removed; orders store `payment_method_id = 'manual'` | ✅ live |
+| Every website order emails the LYnto mailbox (`owner_alert_email`, default fallback `orders@lynto.store`) with customer contact + items | ✅ live |
+| Cloudflare Email Routing: `orders@lynto.store` (+ existing catch-all) → ahmedthalool0@gmail.com (destination verified) | ✅ |
+| Meta catalog "LYnto Catalog" fed hourly from `https://lynto.store/feeds/meta-catalog.csv` (one item per available plan, 627 items, 0 issues) and connected to WhatsApp number +20 10 97293693 with the catalog icon and "Add to cart" on | ✅ configured · ⚠ Meta Commerce Policy restricts digital subscriptions/virtual currency — items may be flagged; number must be registered/live for customers to see it |
+| WhatsApp templates `order_received` / `payment_reminder` (already submitted) still mention transferring after ordering; re-submit wording if Meta approves them | ⏳ |
