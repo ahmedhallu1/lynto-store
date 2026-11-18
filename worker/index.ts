@@ -6,6 +6,7 @@ import { adminAuth } from './routes/admin-auth';
 import { admin } from './routes/admin';
 import { webhooks } from './routes/webhooks';
 import { renderPage, robots, sitemap, llms } from './lib/seo';
+import { metaCatalogFeed } from './lib/meta-feed';
 import { loadSettings } from './lib/settings';
 import { runScheduled } from './services/cron';
 
@@ -71,6 +72,7 @@ app.get('/media/:id', async (c) => {
 app.get('/robots.txt', robots);
 app.get('/sitemap.xml', sitemap);
 app.get('/llms.txt', llms);
+app.get('/feeds/meta-catalog.csv', metaCatalogFeed);
 
 // Static files that reached the Worker (e.g. /manifest.webmanifest) go to the asset server.
 app.get('*', async (c, next) => {
