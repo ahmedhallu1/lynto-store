@@ -88,8 +88,8 @@ export function renderOwner(event: OwnerEvent, m: MessageContext & { extra?: str
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const linkify = (s: string) => esc(s).replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}" style="color:#7cc4ff">${u}</a>`);
 
-type Support = { whatsapp?: string; email?: string; facebook?: string; instagram?: string };
-type Layout = { lang: 'ar' | 'en'; storeUrl: string; preheader?: string; supportWhatsapp?: string; supportEmail?: string; facebook?: string; instagram?: string };
+type Support = { whatsapp?: string; email?: string; facebook?: string; instagram?: string; telegram?: string };
+type Layout = { lang: 'ar' | 'en'; storeUrl: string; preheader?: string; supportWhatsapp?: string; supportEmail?: string; facebook?: string; instagram?: string; telegram?: string };
 const httpsUrl = (u?: string) => (u && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : '');
 
 /** Branded email shell. `bodyHtml` must already be escaped/trusted HTML. */
@@ -100,7 +100,7 @@ export function emailShell(inner: string, o: Layout): string {
   const font = ar ? "Tahoma,'Segoe UI',Arial,sans-serif" : "'Segoe UI',Arial,sans-serif";
   const footer = ar ? 'الرسالة دي من LYnto بخصوص طلبك أو استفسارك. لو مش إنت، تجاهلها.' : 'This message is from LYnto about your order or enquiry. If it is not for you, you can ignore it.';
   const help = ar ? 'محتاج مساعدة؟' : 'Need help?';
-  const contact = [o.supportWhatsapp ? `<a href="https://wa.me/${o.supportWhatsapp.replace(/\D/g, '')}" style="color:#7cc4ff">WhatsApp</a>` : '', o.supportEmail ? `<a href="mailto:${esc(o.supportEmail)}" style="color:#7cc4ff">${esc(o.supportEmail)}</a>` : '', `<a href="${o.storeUrl}/support" style="color:#7cc4ff">${ar ? 'صفحة الدعم' : 'Support page'}</a>`].filter(Boolean).join(' · ');
+  const contact = [o.supportWhatsapp ? `<a href="https://wa.me/${o.supportWhatsapp.replace(/\D/g, '')}" style="color:#7cc4ff">WhatsApp</a>` : '', httpsUrl(o.telegram) ? `<a href="${esc(httpsUrl(o.telegram))}" style="color:#7cc4ff">Telegram</a>` : '', o.supportEmail ? `<a href="mailto:${esc(o.supportEmail)}" style="color:#7cc4ff">${esc(o.supportEmail)}</a>` : '', `<a href="${o.storeUrl}/support" style="color:#7cc4ff">${ar ? 'صفحة الدعم' : 'Support page'}</a>`].filter(Boolean).join(' · ');
   const links = [
     { url: httpsUrl(o.facebook), name: 'Facebook', icon: 'social-facebook.png' },
     { url: httpsUrl(o.instagram), name: 'Instagram', icon: 'social-instagram.png' },
@@ -128,13 +128,13 @@ export function emailHtml(r: Rendered, link: string, lang: 'ar' | 'en', storeUrl
         .join('')}</table>`
     : '';
   const cta = `<p style="margin:18px 0 10px"><a href="${esc(link)}" style="display:inline-block;background:linear-gradient(90deg,#1a7fe0,#20c7cf);background-color:#168CDD;color:#ffffff;text-decoration:none;padding:13px 24px;border-radius:12px;font-weight:bold">${esc(r.cta)}</a></p>`;
-  return emailShell(para + rows + cta, { lang, storeUrl, preheader: r.preheader, supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram });
+  return emailShell(para + rows + cta, { lang, storeUrl, preheader: r.preheader, supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram, telegram: support?.telegram });
 }
 
 /** Free-form message composed by the owner (plain text → branded HTML). */
 export function composedHtml(body: string, lang: 'ar' | 'en', storeUrl: string, support?: Support): string {
   const blocks = body.trim().split(/\n{2,}/).map((b) => `<p style="margin:0 0 14px">${linkify(b).replace(/\n/g, '<br>')}</p>`).join('');
-  return emailShell(blocks, { lang, storeUrl, preheader: body.trim().slice(0, 90), supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram });
+  return emailShell(blocks, { lang, storeUrl, preheader: body.trim().slice(0, 90), supportWhatsapp: support?.whatsapp, supportEmail: support?.email, facebook: support?.facebook, instagram: support?.instagram, telegram: support?.telegram });
 }
 
 /** Suggested WhatsApp template bodies to create in Meta Business Manager (variables in order). */

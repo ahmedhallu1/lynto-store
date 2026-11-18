@@ -19,7 +19,7 @@ type OrderView = {
     fulfillment_status: string; delivered_at: number | null; activated_at: number | null; expires_at: number | null; guarantee_until: number | null; is_perpetual: boolean;
     delivery: null | { via: string; kind: string; created_at: number; details: string | null; note: string } }>;
   timeline: Array<{ type: string; data: any; created_at: number }>;
-  support: { whatsapp: string; email: string };
+  support: { whatsapp: string; email: string; socials?: { telegram?: string } };
 };
 
 const statusKind = (s: string) => (['verified', 'delivered'].includes(s) ? 'ok' : ['rejected', 'cancelled'].includes(s) ? 'bad' : ['refund_requested', 'refunded', 'partially_delivered'].includes(s) ? 'warn' : s === 'processing' ? 'info' : 'cyan');
@@ -77,7 +77,7 @@ export function OrderPage({ number }: { number: string }) {
       )}
       {order.refund && <Alert kind="warn" title={t('order.refund')}>{order.refund.refunded_at ? t('order.refund.done', { amount: money(order.refund.amount_piastres, lang) }) : t('order.refund.requested')}</Alert>}
 
-      {order.payment_status === 'awaiting_transfer' && <PaymentContactBox whatsapp={order.support.whatsapp} email={order.support.email} number={order.number} />}
+      {order.payment_status === 'awaiting_transfer' && <PaymentContactBox whatsapp={order.support.whatsapp} email={order.support.email} telegram={order.support.socials?.telegram} number={order.number} />}
       {order.can_upload_proof && <ProofForm number={order.number} orderKey={key} onDone={load} hasProof={order.payment_status === 'proof_submitted'} />}
       {order.proofs.length > 0 && (
         <section className="card p-5">
@@ -118,6 +118,7 @@ export function OrderPage({ number }: { number: string }) {
         <div className="flex flex-wrap gap-2">
           {order.support.whatsapp && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60" target="_blank" rel="noopener noreferrer"
             href={`https://wa.me/${order.support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`${pick('طلب رقم', 'Order')} ${order.number}`)}`}><Icon.whatsapp width={18} height={18} /> {t('support.whatsapp')}</a>}
+          {order.support.socials?.telegram && /^https:\/\//.test(order.support.socials.telegram) && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60" target="_blank" rel="noopener noreferrer" href={order.support.socials.telegram}><Icon.telegram width={18} height={18} /> Telegram</a>}
           <Link href={href('/support')} className="inline-flex min-h-11 items-center rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60">{t('support.form')}</Link>
           {order.can_cancel && <CancelButton number={order.number} orderKey={key} onDone={load} />}
         </div>
@@ -126,7 +127,7 @@ export function OrderPage({ number }: { number: string }) {
   );
 }
 
-function PaymentContactBox({ whatsapp, email, number }: { whatsapp?: string; email?: string; number: string }) {
+function PaymentContactBox({ whatsapp, email, telegram, number }: { whatsapp?: string; email?: string; telegram?: string; number: string }) {
   const { t, pick } = useI18n();
   return (
     <section className="card glow space-y-3 p-5">
@@ -135,6 +136,7 @@ function PaymentContactBox({ whatsapp, email, number }: { whatsapp?: string; ema
       <div className="flex flex-wrap gap-2">
         {whatsapp && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan/50 px-4 text-sm font-semibold text-cyan" target="_blank" rel="noopener noreferrer"
           href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`${pick('طلب رقم', 'Order')} ${number}`)}`}><Icon.whatsapp width={18} height={18} /> {t('support.whatsapp')}</a>}
+        {telegram && /^https:\/\//.test(telegram) && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60" href={telegram} target="_blank" rel="noopener noreferrer"><Icon.telegram width={18} height={18} /> Telegram</a>}
         {email && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60" href={`mailto:${email}?subject=${encodeURIComponent(number)}`}><Icon.mail width={18} height={18} /> <span className="ltr">{email}</span></a>}
       </div>
     </section>

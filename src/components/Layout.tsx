@@ -113,6 +113,7 @@ function Footer() {
           <p className="mb-2 text-sm font-semibold">{t('support.contact')}</p>
           <ul className="space-y-1.5 text-sm text-muted">
             {support?.whatsapp && <li><a className="hover:text-text inline-flex items-center gap-2" href={`https://wa.me/${support.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><Icon.whatsapp width={16} height={16} /><span className="ltr">{support.whatsapp}</span></a></li>}
+            {support?.socials?.telegram && /^https:\/\//.test(support.socials.telegram) && <li><a className="hover:text-text inline-flex items-center gap-2" href={support.socials.telegram} target="_blank" rel="noopener noreferrer"><Icon.telegram width={16} height={16} /><span className="ltr">{support.socials.telegram.replace(/^https:\/\/t\.me\//, '@')}</span></a></li>}
             {support?.email && <li><a className="hover:text-text inline-flex items-center gap-2" href={`mailto:${support.email}`}><Icon.mail width={16} height={16} /><span className="ltr">{support.email}</span></a></li>}
             <li><Link className="hover:text-text" href={href('/support')}>{t('support.form')}</Link></li>
           </ul>

@@ -51,9 +51,10 @@ export function Support() {
         <div className="space-y-4">
           <div className="card p-5">
             <h2 className="font-semibold">{t('support.contact')}</h2>
-            {s && (s.whatsapp || s.email) ? (
+            {s && (s.whatsapp || s.email || s.socials?.telegram) ? (
               <div className="mt-3 flex flex-col gap-2">
                 {s.whatsapp && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 font-semibold hover:border-cyan/60" href={`https://wa.me/${s.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><Icon.whatsapp /> {t('support.whatsapp')} <span className="ltr text-sm text-muted">{s.whatsapp}</span></a>}
+                {s.socials?.telegram && /^https:\/\//.test(s.socials.telegram) && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 font-semibold hover:border-cyan/60" href={s.socials.telegram} target="_blank" rel="noopener noreferrer"><Icon.telegram /> Telegram <span className="ltr text-sm text-muted">{s.socials.telegram.replace(/^https:\/\/t\.me\//, '@')}</span></a>}
                 {s.email && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 font-semibold hover:border-cyan/60" href={`mailto:${s.email}`}><Icon.mail /> {t('support.email')} <span className="ltr text-sm text-muted">{s.email}</span></a>}
               </div>
             ) : <p className="mt-2 text-sm text-muted">{t('support.none')}</p>}
