@@ -8,7 +8,7 @@ export function productImage(base: string, product: Pick<PublicProduct, 'slug' |
 export const SEO_COPY = {
   ar: {
     siteTitle: 'LYnto | اشتراكات الذكاء الاصطناعي والبرامج وكروت الشحن في مصر',
-    siteDesc: 'اشتراكات أدوات الذكاء الاصطناعي والبرامج والترفيه وكروت الشحن في مصر. الأسعار بالجنيه المصري والدفع بإنستاباي أو تحويل بنكي أو محفظة، مع تأكيد يدوي للدفع.',
+    siteDesc: 'اشتراكات أدوات الذكاء الاصطناعي والبرامج والترفيه وكروت الشحن في مصر. الأسعار بالجنيه المصري، وبنتواصل معاك بعد الطلب لبيانات الدفع مع تأكيد يدوي للدفع.',
     catalog: 'أسعار الاشتراكات الرقمية وكروت الشحن في مصر',
     support: 'الدعم والأسئلة الشائعة', about: 'عن LYnto', privacy: 'سياسة الخصوصية',
     terms: 'شروط الشراء', guarantee: 'الضمان والاسترجاع', deletion: 'سياسة مسح البيانات',
@@ -17,7 +17,7 @@ export const SEO_COPY = {
   },
   en: {
     siteTitle: 'LYnto | AI subscriptions, software & gift cards in Egypt',
-    siteDesc: 'Buy AI, software and entertainment subscriptions and gift cards in Egypt. Prices in EGP; pay LYnto by InstaPay, bank transfer or mobile wallet with manual payment verification.',
+    siteDesc: 'Buy AI, software and entertainment subscriptions and gift cards in Egypt. Prices in EGP; LYnto contacts you after you order with the payment details and verifies payment manually.',
     catalog: 'Digital subscription & gift card prices in Egypt',
     support: 'Support & FAQ', about: 'About LYnto', privacy: 'Privacy policy',
     terms: 'Purchase terms', guarantee: 'Guarantee & refunds', deletion: 'Data deletion policy',
@@ -28,19 +28,19 @@ export const SEO_COPY = {
 
 export const INFORMATION_DESCRIPTIONS = {
   ar: {
-    support: 'إجابات عن الدفع بإنستاباي والمحافظ، تأكيد التحويل، التسليم والضمان. تواصل مع دعم LYnto قبل الطلب أو بخصوص طلبك الحالي.',
+    support: 'إجابات عن الدفع، تأكيد الدفع، التسليم والضمان. تواصل مع دعم LYnto قبل الطلب أو بخصوص طلبك الحالي.',
     about: 'LYnto متجر اشتراكات رقمية وتراخيص برامج وكروت شحن في مصر. اعرف طريقة الطلب والدفع والتسليم والدعم.',
     privacy: 'اعرف البيانات التي يجمعها LYnto لإتمام طلبك، وكيف تُستخدم وتُحمى، وطريقة طلب تصحيحها أو مسحها.',
-    terms: 'شروط شراء المنتجات الرقمية من LYnto: الأسعار بالجنيه المصري، التحويل اليدوي، تأكيد الدفع والتسليم والتجديد.',
+    terms: 'شروط شراء المنتجات الرقمية من LYnto: الأسعار بالجنيه المصري، تأكيد الدفع والتسليم والتجديد.',
     guarantee: 'تفاصيل ضمان اشتراكات LYnto من تاريخ التفعيل، وحالات إصلاح المشكلة أو الاستبدال أو الاسترجاع حسب السياسة المنشورة.',
     'data-deletion': 'طريقة طلب مسح بياناتك الشخصية من LYnto، والبيانات التي تُحذف والسجلات المجهّلة التي تُحفظ للمحاسبة والدعم.',
     guides: 'أدلة عملية للدفع والتحقق من الحساب والمنطقة قبل شراء اشتراك رقمي أو كارت شحن. إجراءات واضحة وروابط للمصادر الرسمية.',
   },
   en: {
-    support: 'Answers about InstaPay and wallet payments, transfer verification, delivery and guarantees. Contact LYnto before buying or for help with an existing order.',
+    support: 'Answers about payment, payment verification, delivery and guarantees. Contact LYnto before buying or for help with an existing order.',
     about: 'LYnto is a digital subscription, software license and gift card store serving Egypt. Learn how ordering, payments, delivery and support work.',
     privacy: 'Learn what LYnto collects to process orders, how information is used and protected, and how to request correction or deletion.',
-    terms: 'LYnto digital purchase terms: prices in EGP, manual transfers, payment verification, delivery and renewals.',
+    terms: 'LYnto digital purchase terms: prices in EGP, payment details sent after ordering, payment verification, delivery and renewals.',
     guarantee: 'LYnto subscription guarantees from activation, troubleshooting, replacements and refunds under the published policy.',
     'data-deletion': 'How to request deletion of personal data from LYnto, what is deleted and which anonymised records are retained.',
     guides: 'Practical guides to paying and checking account and region compatibility before buying a digital subscription or gift card, with official sources.',
@@ -126,7 +126,7 @@ export function pageMetadata(base: string, path: string, opts: MetadataOptions =
   if (opts.category) {
     const c = opts.category;
     title = lang === 'ar' ? `${c.name_ar} في مصر | LYnto` : `${c.name_en} in Egypt | LYnto`;
-    description = (lang === 'ar' ? c.description_ar : c.description_en) + (lang === 'ar' ? ' قارن الباقات والأسعار بالجنيه المصري وادفع بإنستاباي أو محفظة.' : ' Compare plans and prices in EGP; pay by InstaPay or mobile wallet.');
+    description = (lang === 'ar' ? c.description_ar : c.description_en) + (lang === 'ar' ? ' قارن الباقات والأسعار بالجنيه المصري.' : ' Compare plans and prices in EGP.');
     jsonld = [{
       '@context': 'https://schema.org', '@type': 'CollectionPage', '@id': base + pathname + '#collection',
       name: lang === 'ar' ? c.name_ar : c.name_en, url: base + pathname, inLanguage: lang === 'ar' ? 'ar-EG' : 'en',
@@ -142,7 +142,7 @@ export function pageMetadata(base: string, path: string, opts: MetadataOptions =
     const name = lang === 'ar' ? p.title_ar : p.title_en;
     title = lang === 'ar' ? `${name} في مصر — الأسعار والباقات | LYnto` : `${name} in Egypt — plans & prices | LYnto`;
     description = (lang === 'ar' ? p.summary_ar : p.summary_en) || (lang === 'ar' ? p.description_ar : p.description_en);
-    if (p.min_price_piastres) description += lang === 'ar' ? ` يبدأ من ${(p.min_price_piastres / 100).toFixed(2)} جنيه. الدفع بإنستاباي أو محفظة وتأكيد التحويل يدوياً.` : ` From EGP ${(p.min_price_piastres / 100).toFixed(2)}. Pay by InstaPay or wallet; transfers are verified manually.`;
+    if (p.min_price_piastres) description += lang === 'ar' ? ` يبدأ من ${(p.min_price_piastres / 100).toFixed(2)} جنيه. بيانات الدفع بتوصلك بعد الطلب.` : ` From EGP ${(p.min_price_piastres / 100).toFixed(2)}. Payment details are sent after you order.`;
     image = productImage(base, p);
     jsonld = productSchemas(p, lang, base, opts.settings?.checkout_enabled ?? true);
   } else if (rest === '/' || rest === '/about') {

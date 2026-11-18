@@ -36,6 +36,9 @@ export const DEFAULT_WA_TEMPLATES: BusinessSettings['notifications']['whatsapp_t
   payment_reminder: { name: '', language: 'ar_EG' },
 };
 
+/** Order alerts go to this LYnto mailbox (forwarded to the owner by Cloudflare Email Routing) unless Setup overrides it. */
+export const OWNER_ALERT_FALLBACK = 'orders@lynto.store';
+
 export const DEFAULT_SETTINGS: BusinessSettings = {
   store: { accepting_orders: false, business_name: 'LYnto', announcement_ar: '', announcement_en: '' },
   payments: {
@@ -53,7 +56,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   },
   policies: { confirmed: false, ...DRAFT_POLICIES, terms_extra_ar: '', terms_extra_en: '' },
   notifications: {
-    email_provider: 'none', from_domain: 'lynto.store', from_email: 'orders@lynto.store', from_support: 'support@lynto.store', from_name: 'LYnto', reply_to: '', owner_alert_email: '',
+    email_provider: 'none', from_domain: 'lynto.store', from_email: 'orders@lynto.store', from_support: 'support@lynto.store', from_name: 'LYnto', reply_to: '', owner_alert_email: OWNER_ALERT_FALLBACK,
     whatsapp_enabled: false, whatsapp_phone_number_id: '', whatsapp_waba_id: '', whatsapp_autoreply: true, whatsapp_autoactivate: true,
     whatsapp_flows: { support: '', track: '', deletion: '', request: '' }, whatsapp_api_version: 'v25.0',
     whatsapp_templates: DEFAULT_WA_TEMPLATES,
@@ -69,11 +72,10 @@ export function paymentMethodComplete(m: PaymentMethod): boolean {
   return true;
 }
 
-export type Blocker = 'store_closed' | 'no_payment_method' | 'schedule_missing' | 'policies_unconfirmed' | 'support_missing';
+export type Blocker = 'store_closed' | 'schedule_missing' | 'policies_unconfirmed' | 'support_missing';
 
 export function checkoutBlockers(s: BusinessSettings): Blocker[] {
   const b: Blocker[] = [];
-  if (!s.payments.methods.some((m) => m.enabled && paymentMethodComplete(m))) b.push('no_payment_method');
   const hasHours = Object.values(s.schedule.week ?? {}).some((l) => (l ?? []).length > 0);
   if (!s.schedule.configured || !hasHours) b.push('schedule_missing');
   if (!s.policies.confirmed || !s.policies.guarantee_ar.trim() || !s.policies.refund_ar.trim()) b.push('policies_unconfirmed');

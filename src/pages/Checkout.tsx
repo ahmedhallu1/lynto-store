@@ -19,14 +19,12 @@ export function Checkout() {
   const { data } = useStore();
   const { quote } = useQuote(items, lang);
   usePageTitle(t('checkout.title'), { noindex: true });
-  const methods = data?.settings.payment_methods ?? [];
-  const [form, setForm] = useState({ name: '', email: '', whatsapp: '+20', preferred_channel: 'whatsapp' as 'whatsapp' | 'email', whatsapp_optin: false, renewal_optin: false, payment_method_id: '', accept_terms: false, tracking_consent: false });
+  const [form, setForm] = useState({ name: '', email: '', whatsapp: '+20', preferred_channel: 'whatsapp' as 'whatsapp' | 'email', whatsapp_optin: false, renewal_optin: false, accept_terms: false, tracking_consent: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
   const pixel = !!data?.settings.meta_pixel_id && getConsent() === 'granted';
 
-  useEffect(() => { if (!form.payment_method_id && methods[0]) setForm((f) => ({ ...f, payment_method_id: methods[0].id })); }, [methods.length]);
   useEffect(() => { if (quote && quote.total_piastres) track('InitiateCheckout', { currency: 'EGP', value: quote.total_piastres / 100, num_items: items.length }); }, [!!quote]);
 
   if (!items.length) {
@@ -42,12 +40,11 @@ export function Checkout() {
     if (!EMAIL_RE.test(form.email.trim())) e.email = pick('إيميل مش صحيح', 'Enter a valid email');
     const digits = form.whatsapp.replace(/[^\d+]/g, '');
     if (!/^(\+|00)?\d{8,15}$/.test(digits) && !/^01\d{9}$/.test(digits)) e.whatsapp = pick('اكتب الرقم بكود الدولة، مثال ‎+201001234567', 'Include the country code, e.g. +201001234567');
-    if (!form.payment_method_id) e.payment_method_id = t('common.required');
     if (!form.accept_terms) e.accept_terms = t('common.required');
     setErrors(e);
     const first = Object.keys(e)[0];
     if (first) setTimeout(() => {
-      const el = document.getElementById({ name: 'name', email: 'email', whatsapp: 'wa', payment_method_id: 'methods', accept_terms: 'terms' }[first] ?? '');
+      const el = document.getElementById({ name: 'name', email: 'email', whatsapp: 'wa', accept_terms: 'terms' }[first] ?? '');
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLInputElement | null)?.focus?.({ preventScroll: true });
     }, 0);
     return Object.keys(e).length === 0;
@@ -62,7 +59,6 @@ export function Checkout() {
       const res = await api.post<{ number: string; token: string; url: string }>('/api/public/orders', {
         idempotency_key: checkoutKey(), lang,
         customer: { name: form.name.trim(), email: form.email.trim(), whatsapp: form.whatsapp.trim(), preferred_channel: form.preferred_channel, whatsapp_optin: form.whatsapp_optin, renewal_optin: form.renewal_optin },
-        payment_method_id: form.payment_method_id,
         lines: items.map((i) => ({ plan_id: i.planId, qty: i.qty, fields: i.fields })),
         expected_total_piastres: quote.total_piastres, accept_terms: form.accept_terms, tracking_consent: pixel && form.tracking_consent,
       });
@@ -106,19 +102,12 @@ export function Checkout() {
           <Checkbox label={t('checkout.renewalOptin')} checked={form.renewal_optin} onChange={(e) => set('renewal_optin', e.target.checked)} />
         </section>
 
-        <section id="methods" tabIndex={-1} className="card space-y-3 p-5">
-          <h2 className="font-semibold">{t('checkout.method')}</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {methods.map((m) => (
-              <label key={m.id} className={cx('flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border p-3', form.payment_method_id === m.id ? 'border-cyan bg-cyan/5' : 'border-line')}>
-                <input type="radio" name="method" className="size-5 accent-cyan" checked={form.payment_method_id === m.id} onChange={() => set('payment_method_id', m.id)} />
-                {m.type === 'bank' ? <Icon.bank className="text-cyan" /> : <Icon.wallet className="text-cyan" />}
-                <span className="font-medium">{pick(m.label_ar, m.label_en)}</span>
-              </label>
-            ))}
+        <section className="card flex items-start gap-3 p-5">
+          <Icon.wallet className="mt-0.5 shrink-0 text-cyan" />
+          <div>
+            <h2 className="font-semibold">{t('checkout.payTitle')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('checkout.payContact')}</p>
           </div>
-          {errors.payment_method_id && <p className="text-xs text-bad">{errors.payment_method_id}</p>}
-          <p className="text-sm text-muted">{t('checkout.manual')}</p>
         </section>
 
         <section className="card space-y-3 p-5">

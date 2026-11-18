@@ -1,6 +1,6 @@
 import type { Env } from '../env';
 import type { BusinessSettings, CustomerField } from '../../shared/types';
-import { checkoutBlockers, paymentMethodComplete } from '../../shared/defaults';
+import { checkoutBlockers } from '../../shared/defaults';
 import { addCalendarPeriod, addWorkingMinutes } from '../../shared/schedule';
 import { decryptText, encryptText, hmacHex, newId, randomCode, randomToken, sha256Hex } from '../lib/crypto';
 import { HttpError, bad, conflict, notFound, now, orderEventStmt, parseJSON, baseUrl } from '../lib/util';
@@ -24,11 +24,13 @@ export type ItemRow = {
   activated_at: number | null; expires_at: number | null; guarantee_until: number | null; renewal_reminded_at: number | null; last_action_id: string | null; sort: number;
 };
 
+/** Payment details are arranged personally by the owner after the order; no method is chosen at checkout. */
+const MANUAL_PAYMENT = 'manual';
+
 export type CheckoutInput = {
   idempotency_key: string;
   lang: 'ar' | 'en';
   customer: { name: string; email: string; whatsapp: string; preferred_channel: 'whatsapp' | 'email'; whatsapp_optin: boolean; renewal_optin: boolean };
-  payment_method_id: string;
   lines: Array<{ plan_id: string; qty: number; fields: Record<string, string> }>;
   expected_total_piastres: number;
   accept_terms: boolean;
@@ -93,8 +95,6 @@ export async function createOrder(env: Env, input: CheckoutInput, ipHashValue: s
   const blockers = checkoutBlockers(s);
   if (blockers.length) throw new HttpError(403, 'checkout_disabled', 'Checkout is not open yet.', blockers);
   if (!input.accept_terms) throw bad('terms_required');
-  const method = s.payments.methods.find((m) => m.id === input.payment_method_id && m.enabled && paymentMethodComplete(m));
-  if (!method) throw bad('invalid_payment_method');
 
   const idemHash = await hmacHex(env.TOKEN_SECRET, 'idem:' + input.idempotency_key);
   const existing = await env.DB.prepare('SELECT number, access_enc FROM orders WHERE idem_hash = ?').bind(idemHash).first<{ number: string; access_enc: string }>();
@@ -120,16 +120,25 @@ export async function createOrder(env: Env, input: CheckoutInput, ipHashValue: s
         whatsapp_optin, renewal_optin, tracking_consent, subtotal_piastres, total_piastres, payment_method_id, ip_hash, created_at, updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
         orderId, number, await orderAccessHash(env, token), accessEnc, idemHash, input.lang, input.customer.name, input.customer.email, input.customer.whatsapp,
-        input.customer.preferred_channel, order.whatsapp_optin, input.customer.renewal_optin ? 1 : 0, input.tracking_consent ? 1 : 0, q.subtotal, q.total, method.id, ipHashValue, t, t),
+        input.customer.preferred_channel, order.whatsapp_optin, input.customer.renewal_optin ? 1 : 0, input.tracking_consent ? 1 : 0, q.subtotal, q.total, MANUAL_PAYMENT, ipHashValue, t, t),
       ...q.items.map((it, i) => env.DB.prepare(`INSERT INTO order_items (id, order_id, product_id, plan_id, product_title_ar, product_title_en, plan_name_ar, plan_name_en, plan_type,
         duration_value, duration_unit, is_perpetual, guarantee_kind, guarantee_days, unit_price_piastres, qty, line_total_piastres, customer_fields, sort)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
         newId('itm'), orderId, it.plan.p_id, it.plan.id, it.plan.p_title_ar, it.plan.p_title_en, it.plan.name_ar, it.plan.name_en, it.plan.plan_type,
         it.plan.duration_value, it.plan.duration_unit, it.plan.is_perpetual, it.plan.guarantee_kind, it.plan.guarantee_days, it.plan.price_piastres, it.qty, it.line_total,
         JSON.stringify(it.fields), i)),
-      orderEventStmt(env, orderId, 'customer', 'order_created', 'customer', { total_piastres: q.total, method: method.id }),
+      orderEventStmt(env, orderId, 'customer', 'order_created', 'customer', { total_piastres: q.total }),
       ...notificationStmts(env, { orderId, audience: 'customer', event: 'order_received', channels: await planCustomerChannels(env, s, order, 'order_received'), recipientFor: recipientFor(order), dedupeBase: `order_received:${orderId}` }),
-      ...(await ownerAlertStmts(env, s, orderId, 'owner_new_order', `owner_new_order:${orderId}`)),
+      ...(await ownerAlertStmts(env, s, orderId, 'owner_new_order', `owner_new_order:${orderId}`, {
+        extra: [
+          `Customer: ${input.customer.name}`,
+          `Email: ${input.customer.email}`,
+          `WhatsApp: ${input.customer.whatsapp}${input.customer.whatsapp_optin ? ' (opted in to WhatsApp messages)' : ''}`,
+          `Preferred contact: ${input.customer.preferred_channel}`,
+          'Items:',
+          ...q.items.map((it) => `- ${it.plan.p_title_en} — ${it.plan.name_en} × ${it.qty}`),
+        ].join('\n'),
+      })),
     ];
     try {
       await env.DB.batch(stmts);
@@ -177,8 +186,6 @@ export async function customerOrderView(env: Env, o: OrderRow) {
   ]);
   const latest = new Map<string, any>();
   for (const d of deliveries.results as any[]) latest.set(d.item_id, d);
-  const awaitingPayment = ['awaiting_transfer', 'proof_submitted', 'rejected'].includes(o.payment_status);
-  const method = s.payments.methods.find((m) => m.id === o.payment_method_id);
   return {
     number: o.number, created_at: o.created_at, lang: o.lang,
     customer: { name: o.customer_name, email: o.customer_email, whatsapp: o.customer_whatsapp, preferred_channel: o.preferred_channel },
@@ -186,13 +193,6 @@ export async function customerOrderView(env: Env, o: OrderRow) {
     payment_status: o.payment_status, fulfillment_status: o.fulfillment_status, rejection_reason: o.payment_status === 'rejected' ? o.rejection_reason : null,
     verified_at: o.verified_at, delivery_due_at: o.delivery_due_at, delivered_at: o.delivered_at, cancelled_at: o.cancelled_at,
     refund: o.refund_requested_at ? { requested_at: o.refund_requested_at, refunded_at: o.refunded_at, amount_piastres: o.refund_amount_piastres } : null,
-    payment_method_id: o.payment_method_id,
-    payment_destination: awaitingPayment && method ? {
-      id: method.id, type: method.type, label_ar: method.label_ar, label_en: method.label_en, account: method.account, account_name: method.account_name,
-      bank_name: method.bank_name ?? '', iban: method.iban ?? '', wallet_provider: method.wallet_provider ?? '', instapay_link: method.instapay_link ?? '',
-      instructions_ar: method.instructions_ar ?? '', instructions_en: method.instructions_en ?? '',
-    } : null,
-    available_methods: awaitingPayment ? s.payments.methods.filter((m) => m.enabled && paymentMethodComplete(m)).map((m) => ({ id: m.id, label_ar: m.label_ar, label_en: m.label_en, type: m.type })) : [],
     can_upload_proof: ['awaiting_transfer', 'rejected', 'proof_submitted'].includes(o.payment_status) && (proofs.results as any[]).length < 6,
     can_cancel: o.payment_status === 'awaiting_transfer',
     proofs: (proofs.results as any[]).map((p) => ({ status: p.status, reject_reason: p.reject_reason, transaction_ref: p.transaction_ref, created_at: p.created_at })),
@@ -476,14 +476,6 @@ export async function completeRefund(env: Env, actor: string, orderId: string, i
     guardedEvent(env, o.id, actionId, actor, 'refunded_detail', 'internal', { amount_piastres: input.amount_piastres, reference: input.reference }),
   ]);
   return { already: res[0].meta.changes !== 1 };
-}
-
-export async function changePaymentMethod(env: Env, o: OrderRow, methodId: string) {
-  const s = await loadSettings(env);
-  const m = s.payments.methods.find((x) => x.id === methodId && x.enabled && paymentMethodComplete(x));
-  if (!m) throw bad('invalid_payment_method');
-  const r = await env.DB.prepare(`UPDATE orders SET payment_method_id = ?, updated_at = ? WHERE id = ? AND payment_status IN ('awaiting_transfer','rejected','proof_submitted')`).bind(m.id, now(), o.id).run();
-  if (r.meta.changes !== 1) throw conflict('invalid_state');
 }
 
 export async function regenerateLink(env: Env, actor: string, orderId: string) {

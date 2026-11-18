@@ -4,7 +4,7 @@ import type { AppContext } from '../env';
 import { loadSettings, toPublicSettings } from '../lib/settings';
 import { bad, clientIp, enforceRate, ipHash, notFound, normalizePhone, now, HttpError } from '../lib/util';
 import { getPublishedProduct, listCategories, listPublishedProducts, listPublishedProductCards } from '../services/catalog';
-import { cancelOrder, changePaymentMethod, createOrder, customerOrderView, orderByToken, quote, submitProof } from '../services/orders';
+import { cancelOrder, createOrder, customerOrderView, orderByToken, quote, submitProof } from '../services/orders';
 import { dispatchPending } from '../services/notifications';
 import { createSupportRequest } from '../services/support';
 
@@ -57,7 +57,6 @@ const checkoutSchema = z.object({
     whatsapp_optin: z.boolean().default(false),
     renewal_optin: z.boolean().default(false),
   }),
-  payment_method_id: z.string().max(40),
   lines: linesSchema,
   expected_total_piastres: z.number().int().min(1),
   accept_terms: z.boolean(),
@@ -96,14 +95,6 @@ publicRoutes.post('/orders/:number/proof', async (c) => {
   const r = await submitProof(c.env, o, file as File, ref, note);
   c.executionCtx.waitUntil(dispatchPending(c.env, { orderId: o.id }).catch(() => {}));
   return c.json(r, 201);
-});
-
-publicRoutes.post('/orders/:number/payment-method', async (c) => {
-  const o = await orderByToken(c.env, c.req.param('number'), orderKey(c));
-  const body = z.object({ method_id: z.string().max(40) }).safeParse(await c.req.json().catch(() => null));
-  if (!body.success) throw bad('invalid_input');
-  await changePaymentMethod(c.env, o, body.data.method_id);
-  return c.json({ ok: true });
 });
 
 publicRoutes.post('/orders/:number/cancel', async (c) => {

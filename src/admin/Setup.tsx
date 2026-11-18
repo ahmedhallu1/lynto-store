@@ -15,7 +15,6 @@ type SettingsResp = {
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const CHECK: Array<[string, string, string]> = [
-  ['no_payment_method', 'Payment destinations', '#payments'],
   ['schedule_missing', 'Working days & hours', '#schedule'],
   ['support_missing', 'Support contacts', '#support'],
   ['policies_unconfirmed', 'Guarantee & refund terms', '#policies'],
@@ -78,16 +77,6 @@ export function Setup() {
             <Field label="Business name" htmlFor="bn"><Input id="bn" value={s.store.business_name} onChange={(e) => upd('store', { business_name: e.target.value })} /></Field>
             <Field label="Announcement bar (Arabic)" htmlFor="aa"><Input id="aa" dir="rtl" value={s.store.announcement_ar} onChange={(e) => upd('store', { announcement_ar: e.target.value })} /></Field>
             <Field label="Announcement bar (English)" htmlFor="ae"><Input id="ae" value={s.store.announcement_en} onChange={(e) => upd('store', { announcement_en: e.target.value })} /></Field>
-          </div>
-        </Section>
-
-        <Section id="payments" title="Payment destinations" done={!blockers.includes('no_payment_method')} onSave={() => save('payments')} busy={busy === 'payments'}
-          desc="Enter your real receiving accounts. Customers see these only on their own order page after placing an order.">
-          {s.payments.methods.map((m, i) => <MethodEditor key={i} m={m} onChange={(nm) => upd('payments', { methods: s.payments.methods.map((x, j) => (j === i ? nm : x)) })} onRemove={() => upd('payments', { methods: s.payments.methods.filter((_, j) => j !== i) })} />)}
-          <div className="flex flex-wrap gap-2">
-            {(['wallet', 'instapay', 'bank'] as const).map((t) => (
-              <Button key={t} size="sm" variant="secondary" onClick={() => upd('payments', { methods: [...s.payments.methods, { id: `${t}_${s.payments.methods.length + 1}`, type: t, enabled: false, label_ar: t === 'bank' ? 'تحويل بنكي' : t === 'wallet' ? 'محفظة إلكترونية' : 'إنستاباي', label_en: t === 'bank' ? 'Bank transfer' : t === 'wallet' ? 'Mobile wallet' : 'InstaPay', account: '', account_name: '', wallet_provider: t === 'wallet' ? 'Vodafone Cash' : undefined }] })}>Add {t}</Button>
-            ))}
           </div>
         </Section>
 
@@ -170,31 +159,6 @@ export function Setup() {
         </Card>
       </div>
     </>
-  );
-}
-
-function MethodEditor({ m, onChange, onRemove }: { m: PaymentMethod; onChange: (m: PaymentMethod) => void; onRemove: () => void }) {
-  const set = (k: keyof PaymentMethod, v: any) => onChange({ ...m, [k]: v });
-  return (
-    <div className="rounded-xl border border-line p-3">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <Checkbox label={<b>{m.label_en} enabled</b>} checked={m.enabled} onChange={(e) => set('enabled', e.target.checked)} />
-        <span className="text-xs text-dim">{m.type} · id {m.id}</span>
-        <button className="text-xs text-muted underline" onClick={onRemove}>Remove</button>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <Field label="Label (Arabic)" htmlFor={`${m.id}-la`}><Input id={`${m.id}-la`} dir="rtl" value={m.label_ar} onChange={(e) => set('label_ar', e.target.value)} /></Field>
-        <Field label="Label (English)" htmlFor={`${m.id}-le`}><Input id={`${m.id}-le`} value={m.label_en} onChange={(e) => set('label_en', e.target.value)} /></Field>
-        <Field label={m.type === 'instapay' ? 'InstaPay address or mobile' : m.type === 'wallet' ? 'Wallet number' : 'Account number'} htmlFor={`${m.id}-ac`}><Input id={`${m.id}-ac`} dir="ltr" value={m.account} onChange={(e) => set('account', e.target.value)} /></Field>
-        <Field label="Account holder name (as shown to payer)" htmlFor={`${m.id}-an`}><Input id={`${m.id}-an`} value={m.account_name} onChange={(e) => set('account_name', e.target.value)} /></Field>
-        {m.type === 'wallet' && <Field label="Wallet provider" htmlFor={`${m.id}-wp`}><Select id={`${m.id}-wp`} value={m.wallet_provider ?? ''} onChange={(e) => set('wallet_provider', e.target.value)}>{['Vodafone Cash', 'Etisalat Cash (e&)', 'Orange Cash', 'WE Pay', 'Other'].map((x) => <option key={x}>{x}</option>)}</Select></Field>}
-        {m.type === 'bank' && <Field label="Bank name" htmlFor={`${m.id}-bn`}><Input id={`${m.id}-bn`} value={m.bank_name ?? ''} onChange={(e) => set('bank_name', e.target.value)} /></Field>}
-        {m.type === 'bank' && <Field label="IBAN (optional)" htmlFor={`${m.id}-ib`}><Input id={`${m.id}-ib`} dir="ltr" value={m.iban ?? ''} onChange={(e) => set('iban', e.target.value)} /></Field>}
-        {m.type === 'instapay' && <Field label="InstaPay payment link (optional)" htmlFor={`${m.id}-il`}><Input id={`${m.id}-il`} dir="ltr" placeholder="https://ipn.eg/…" value={m.instapay_link ?? ''} onChange={(e) => set('instapay_link', e.target.value)} /></Field>}
-        <Field label="Extra instructions (Arabic)" htmlFor={`${m.id}-ia`}><Input id={`${m.id}-ia`} dir="rtl" value={m.instructions_ar ?? ''} onChange={(e) => set('instructions_ar', e.target.value)} /></Field>
-        <Field label="Extra instructions (English)" htmlFor={`${m.id}-ie`}><Input id={`${m.id}-ie`} value={m.instructions_en ?? ''} onChange={(e) => set('instructions_en', e.target.value)} /></Field>
-      </div>
-    </div>
   );
 }
 

@@ -130,7 +130,6 @@ admin.get('/orders/:id', async (c) => {
     proofs: proofs.results, deliveries: deliveries.results,
     events: (events.results as any[]).map((e) => ({ ...e, data: parseJSON(e.data, {}) })),
     notifications: notes.results,
-    payment_method: s.payments.methods.find((m) => m.id === o.payment_method_id) ?? null,
     tracking_url: o.access_enc === 'deleted' || (o as any).source === 'sheet' ? null : await orderLink(c.env, o),
     timezone: s.schedule.timezone,
   });

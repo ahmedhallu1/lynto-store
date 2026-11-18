@@ -19,6 +19,7 @@ export type MessageContext = {
   expires_at?: number | null;
   store_url: string;
   admin_url?: string;
+  extra?: string;
 };
 
 export type Rendered = { subject: string; preheader: string; text: string; cta: string; waParams: string[]; rows: Array<[string, string]> };
@@ -36,8 +37,8 @@ export function renderCustomer(event: CustomerEvent, m: MessageContext): Rendere
   switch (event) {
     case 'order_received':
       return ar
-        ? p(`استلمنا طلبك ${m.number}`, 'حوّل المبلغ وارفع إيصال التحويل من صفحة طلبك.', `أهلاً ${m.name}،\nاستلمنا طلبك رقم ${m.number} بإجمالي ${total}.\nحوّل المبلغ بالظبط على وسيلة الدفع اللي اخترتها، وبعدين ارفع صورة إيصال التحويل من صفحة طلبك.\nطلبك دلوقتي: في انتظار تأكيد الدفع.`, 'افتح صفحة الطلب', [m.name, m.number, total, m.link])
-        : p(`We received your order ${m.number}`, 'Transfer the amount and upload your receipt on your order page.', `Hi ${m.name},\nWe received order ${m.number} for ${total}.\nPlease transfer the exact amount using the payment method you chose, then upload your transfer receipt on your order page.\nStatus: awaiting payment verification.`, 'Open your order', [m.name, m.number, total, m.link]);
+        ? p(`استلمنا طلبك ${m.number}`, 'هنتواصل معاك ونبعتلك بيانات الدفع.', `أهلاً ${m.name}،\nاستلمنا طلبك رقم ${m.number} بإجمالي ${total}.\nهنتواصل معاك في أقرب وقت ونبعتلك بيانات الدفع. من فضلك متحوّلش أي مبلغ قبل ما نكلمك. وبعد ما تدفع، ارفع صورة إيصال التحويل من صفحة طلبك.\nطلبك دلوقتي: في انتظار الدفع.`, 'افتح صفحة الطلب', [m.name, m.number, total, m.link])
+        : p(`We received your order ${m.number}`, 'We will contact you with the payment details.', `Hi ${m.name},\nWe received order ${m.number} for ${total}.\nWe will contact you shortly with the payment details. Please do not transfer anything until you hear from us. After you pay, upload your transfer receipt on your order page.\nStatus: awaiting payment.`, 'Open your order', [m.name, m.number, total, m.link]);
     case 'payment_reminder':
       return ar
         ? p(`طلبك ${m.number} لسه مستني التحويل`, 'لو حوّلت، ارفع الإيصال من صفحة طلبك.', `أهلاً ${m.name}،\nطلبك رقم ${m.number} لسه مستني التحويل بقيمة ${total}.\nلو حوّلت المبلغ، ارفع صورة الإيصال من صفحة طلبك عشان نأكد الدفع ونبدأ التجهيز.\nالطلبات اللي مفيهاش تحويل بتتلغي أوتوماتيك بعد فترة. لو غيّرت رأيك مفيش أي مشكلة.`, 'افتح صفحة الطلب', [m.name, m.number, total, m.link])
@@ -74,7 +75,7 @@ export function renderOwner(event: OwnerEvent, m: MessageContext & { extra?: str
   const rows: Array<[string, string]> = m.number ? [['Order', m.number], ...(m.total_piastres ? ([['Total', total]] as Array<[string, string]>) : [])] : [];
   switch (event) {
     case 'owner_new_order':
-      return { subject: `New order ${m.number} — ${total}`, preheader: 'Awaiting transfer.', cta: 'Open in admin', waParams: [], rows, text: `New order ${m.number} from ${m.name} for ${total}. Awaiting transfer.` };
+      return { subject: `New order ${m.number} — ${total}`, preheader: `New website order from ${m.name}. Contact them with payment details.`, cta: 'Open in admin', waParams: [], rows, text: `New website order ${m.number} for ${total}.\n\n${m.extra ?? `Customer: ${m.name}`}\n\nNext step: contact the customer with the payment details, then verify the transfer before approving.` };
     case 'owner_proof_submitted':
       return { subject: `Payment proof submitted — ${m.number}`, preheader: 'Check your receiving account before approving.', cta: 'Review payment', waParams: [], rows, text: `${m.name} uploaded a transfer receipt for ${m.number} (${total}). Check your receiving account before approving.` };
     case 'owner_delivery_overdue':

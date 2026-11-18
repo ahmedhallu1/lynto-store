@@ -76,12 +76,11 @@ export function OrderDetail({ id }: { id: string }) {
     } catch (e) { setMsg(errMsg(e)); } finally { setBusy(''); }
   };
   const due = dueLabel(o.delivery_due_at);
-  const pm = data.payment_method;
   return (
     <>
       <PageHeader
         title={<span className="font-mono">{o.number}</span>}
-        sub={<>Created {when(o.created_at)} · Total <b>{egp(o.total_piastres)}</b> · via {pm ? pm.label_en : o.payment_method_id}</>}
+        sub={<>Created {when(o.created_at)} · Total <b>{egp(o.total_piastres)}</b> </>}
         actions={<><PayBadge s={o.payment_status} /><FulBadge s={o.fulfillment_status} /></>}
       />
       <div className="mb-4"><Notice msg={msg} /></div>
@@ -159,7 +158,6 @@ function PaymentPanel({ data, busy, act }: any) {
   return (
     <Card>
       <h2 className="font-semibold">Payment</h2>
-      {data.payment_method && <p className="mt-1 text-sm text-muted">Customer was told to pay to: <b>{data.payment_method.label_en}</b> — {data.payment_method.account} ({data.payment_method.account_name})</p>}
       <div className="mt-3 space-y-2">
         {data.proofs.length === 0 && <p className="text-sm text-dim">No receipt uploaded yet.</p>}
         {data.proofs.map((p: any) => (

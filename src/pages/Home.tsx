@@ -33,7 +33,6 @@ export function Home() {
   const { data, error, reload } = useStore();
   usePageTitle(SEO_COPY[lang].siteTitle, { settings: data?.settings });
   const s = data?.settings;
-  const methods = s?.payment_methods.length ? s.payment_methods : null;
   const open247 = isAlwaysOpen(s?.schedule_summary.week);
 
   return (
@@ -115,11 +114,6 @@ export function Home() {
           <section className="mx-auto grid max-w-6xl gap-4 px-4 py-6 lg:grid-cols-3">
             <div className="card p-6">
               <h2 className="flex items-center gap-2 text-lg font-bold"><Icon.wallet className="text-cyan" /> {t('home.pay.title')}</h2>
-              <ul className="mt-4 space-y-2 text-sm">
-                {(methods ?? [{ id: 'instapay', type: 'instapay' }, { id: 'bank', type: 'bank' }, { id: 'wallet', type: 'wallet' }] as any[]).map((m) => (
-                  <li key={m.id} className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-cyan" aria-hidden />{methods ? pick(m.label_ar, m.label_en) : t(`pay.${m.type}` as any)}</li>
-                ))}
-              </ul>
               <p className="mt-4 text-sm text-muted">{t('home.pay.body')}</p>
             </div>
             <div className="card p-6">

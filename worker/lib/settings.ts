@@ -29,7 +29,6 @@ export function toPublicSettings(s: BusinessSettings): PublicSettings {
     announcement_ar: s.store.announcement_ar,
     announcement_en: s.store.announcement_en,
     business_name: s.store.business_name,
-    payment_methods: s.payments.methods.filter((m) => m.enabled && m.account && m.account_name).map(({ id, type, label_ar, label_en }) => ({ id, type, label_ar, label_en })),
     support: s.support,
     policies: s.policies.confirmed
       ? { confirmed: true, guarantee_ar: s.policies.guarantee_ar, guarantee_en: s.policies.guarantee_en, refund_ar: s.policies.refund_ar, refund_en: s.policies.refund_en, terms_extra_ar: s.policies.terms_extra_ar, terms_extra_en: s.policies.terms_extra_en }

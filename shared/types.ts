@@ -96,7 +96,6 @@ export type PublicSettings = {
   announcement_ar: string;
   announcement_en: string;
   business_name: string;
-  payment_methods: Array<Pick<PaymentMethod, 'id' | 'type' | 'label_ar' | 'label_en'>>;
   support: BusinessSettings['support'];
   policies: Omit<BusinessSettings['policies'], 'confirmed'> & { confirmed: boolean };
   schedule_summary: { configured: boolean; week: Schedule['week']; timezone: string };

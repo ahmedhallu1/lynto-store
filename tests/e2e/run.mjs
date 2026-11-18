@@ -323,10 +323,11 @@ async function main() {
     assert(html.headers.get('x-robots-tag')?.includes('noindex'), 'order page noindex');
     assert(!html.text.includes('Test Customer'), 'no customer data in HTML shell');
   });
-  await test('customer sees payment instructions with exact amount; no manual-mode leak of other data', async () => {
+  await test('customer sees 'we will contact you' (no payment methods or account details exposed)', async () => {
     const o = (await P.get(`/orders/${orders.main.number}`, orders.main.token)).json.order;
     eq(o.payment_status, 'awaiting_transfer', 'status'); eq(o.total_piastres, total, 'amount');
-    eq(o.payment_destination.account, 'test-only@instapay', 'destination');
+    assert(!('payment_destination' in o) && !('available_methods' in o), 'no payment destination/methods in order view');
+    assert(!JSON.stringify(o).includes('test-only@instapay'), 'no account details leaked');
   });
   await test('without a sending integration, notifications are honest manual actions (not "sent")', async () => {
     const d = (await A.get(`/orders/${orders.main.order_id ?? (await idOf(orders.main.number))}`)).json;
@@ -381,7 +382,7 @@ async function main() {
     eq(d.notifications.filter((n) => n.event === 'payment_confirmed').length, 1, 'one payment_confirmed notification');
     eq(d.events.filter((e) => e.type === 'payment_verified').length, 1, 'one verification event');
     const o = (await P.get(`/orders/${orders.main.number}`, orders.main.token)).json.order;
-    eq(o.payment_destination, null, 'payment details hidden after verification'); eq(o.fulfillment_status, 'processing', 'processing');
+    eq(o.fulfillment_status, 'processing', 'processing');
   });
 
   // ------------------------------------------------------------ delivery
@@ -481,6 +482,9 @@ async function main() {
       eq(n.status, 'sent', 'email sent'); eq(n.provider, 'resend', 'provider');
       const call = mock.calls.find((c) => c.url === '/emails');
       assert(call && call.headers['idempotency-key'] === n.id, 'idempotency key = notification id');
+      const ownerCall = mock.calls.find((c) => c.url === '/emails' && JSON.parse(c.body).to?.includes('orders@lynto.store'));
+      assert(ownerCall, 'owner alert goes to the LYnto mailbox by default');
+      assert(/New website order/.test(JSON.parse(ownerCall.body).text) && JSON.parse(ownerCall.body).text.includes('@example.com'), 'owner alert lists the customer');
       assert(!JSON.parse(call.body).html.includes('TEST ACCOUNT'), 'no bank details in email');
       mock.mode = 'fail400';
       eq((await A.post(`/orders/${id}/approve`, { amount_egp: '450', reference: 'M-1' })).status, 200, 'approve');
@@ -836,7 +840,7 @@ async function main() {
 
 // ---------------------------------------------------------------- helpers
 function orderBody(lines, expected, key, n = 0, overrides = {}) {
-  return { idempotency_key: `${key}-${RUN}-xxxxxxxx`, lang: 'ar', customer: { ...customer(n), ...overrides }, payment_method_id: 'instapay', lines, expected_total_piastres: expected, accept_terms: true, tracking_consent: false };
+  return { idempotency_key: `${key}-${RUN}-xxxxxxxx`, lang: 'ar', customer: { ...customer(n), ...overrides }, lines, expected_total_piastres: expected, accept_terms: true, tracking_consent: false };
 }
 const idCache = {};
 async function idOf(number) {

@@ -17,7 +17,6 @@ type Dash = {
 };
 
 const BLOCKER_TEXT: Record<string, string> = {
-  no_payment_method: 'Add at least one complete payment destination (InstaPay, wallet or bank).',
   schedule_missing: 'Set your working days and hours (needed for the 2-working-hour delivery clock).',
   policies_unconfirmed: 'Review and confirm the guarantee & refund terms.',
   support_missing: 'Add a support WhatsApp number or email.',
@@ -77,7 +76,7 @@ export function Dashboard() {
             <ul className="mt-3 divide-y divide-line/60">
               {data.proofs.map((o) => (
                 <li key={o.id}><Link href={`/admin/orders/${o.id}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-cyan">
-                  <span><span className="font-mono">{o.number}</span> · {o.customer_name} <span className="text-xs text-dim">via {o.payment_method_id}</span></span><span className="font-semibold">{egp(o.total_piastres)}</span>
+                  <span><span className="font-mono">{o.number}</span> · {o.customer_name}</span><span className="font-semibold">{egp(o.total_piastres)}</span>
                 </Link></li>
               ))}
             </ul>

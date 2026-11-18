@@ -224,7 +224,7 @@ export function Terms() {
           <h2>الطلب والأسعار</h2>
           <ul><li>كل الأسعار بالجنيه المصري ونهائية وقت الطلب، والسعر بيتحسب على السيرفر.</li><li>المنتجات رقمية، ومفيش شحن أو مصاريف توصيل.</li><li>مميزات كل خدمة وشروطها بيحددها مقدّم الخدمة نفسه وممكن تتغير من ناحيته.</li></ul>
           <h2>الدفع</h2>
-          <ul><li>الدفع بتحويل يدوي (إنستاباي، تحويل بنكي، أو محفظة) على البيانات اللي بتظهر في صفحة طلبك.</li><li>الطلب بيتأكد بس بعد ما نتأكد بنفسنا إن المبلغ وصل حسابنا. صورة الإيصال لوحدها مش تأكيد.</li><li>الطلبات اللي مفيش لها تحويل خلال المدة المحددة ممكن تتلغي تلقائياً.</li></ul>
+          <ul><li>بعد ما تعمل الطلب هنتواصل معاك ونبعتلك بيانات الدفع بنفسنا. متحوّلش أي مبلغ قبل ما نكلمك.</li><li>الطلب بيتأكد بس بعد ما نتأكد بنفسنا إن المبلغ وصل حسابنا. صورة الإيصال لوحدها مش تأكيد.</li><li>الطلبات اللي مفيش لها تحويل خلال المدة المحددة ممكن تتلغي تلقائياً.</li></ul>
           <h2>التسليم</h2>
           <ul><li>بنسلّم خلال {hours === 2 ? 'ساعتين' : `${hours} ساعات`} {open247 ? 'من تأكيد الدفع، وإحنا شغالين 24/7' : 'عمل من تأكيد الدفع حسب مواعيد العمل المنشورة (بتوقيت القاهرة)'}.</li><li>التفاصيل بتظهر في صفحة طلبك الخاصة، وممكن نبعتها كمان على واتساب أو الإيميل.</li><li>مش بنطلب كلمة سر أي حساب. لو المنتج محتاج بيانات (زي إيميل الحساب أو رقم اللاعب) بنطلبها في صفحة المنتج.</li></ul>
           <h2>التجديد</h2>
@@ -236,7 +236,7 @@ export function Terms() {
           <h2>Orders and prices</h2>
           <ul><li>All prices are in Egyptian pounds and are final at the time of ordering; totals are calculated on our server.</li><li>Products are digital — no shipping or delivery fees.</li><li>Each service's features and terms are set by its provider and may change on their side.</li></ul>
           <h2>Payment</h2>
-          <ul><li>Payment is by manual transfer (InstaPay, bank transfer or mobile wallet) to the details shown on your order page.</li><li>An order is confirmed only after we verify that the money reached our account. A receipt image alone is not confirmation.</li><li>Orders without a transfer within the stated window may be cancelled automatically.</li></ul>
+          <ul><li>After you place an order we contact you ourselves with the payment details. Please do not transfer anything before you hear from us.</li><li>An order is confirmed only after we verify that the money reached our account. A receipt image alone is not confirmation.</li><li>Orders without a transfer within the stated window may be cancelled automatically.</li></ul>
           <h2>Delivery</h2>
           <ul><li>We deliver within {hours} {open247 ? 'hours of payment verification, and we work 24/7' : 'working hours of payment verification, following our published working hours (Cairo time)'}.</li><li>Details appear on your private order page and may also be sent by WhatsApp or email.</li><li>We never ask for any account password. If a product needs data (such as an account email or player ID), we ask for it on the product page.</li></ul>
           <h2>Renewals</h2>

@@ -6,16 +6,13 @@ import { dateTime, money } from '../lib/format';
 import { compressReceipt } from '../lib/compress';
 import { trackPurchaseOnce } from '../lib/pixel';
 import { Icon } from '../components/icons';
-import { Alert, Badge, Button, CopyButton, Field, Input, Select, Spinner, Textarea, cx } from '../components/ui';
+import { Alert, Badge, Button, CopyButton, Field, Input, Spinner, Textarea, cx } from '../components/ui';
 import { usePageTitle } from '../components/usePageTitle';
 
 type OrderView = {
   number: string; created_at: number; total_piastres: number; payment_status: string; fulfillment_status: string; rejection_reason: string | null;
   verified_at: number | null; delivery_due_at: number | null; delivered_at: number | null; cancelled_at: number | null;
   refund: { requested_at: number; refunded_at: number | null; amount_piastres: number | null } | null;
-  payment_method_id: string;
-  payment_destination: null | { id: string; type: string; label_ar: string; label_en: string; account: string; account_name: string; bank_name: string; iban: string; wallet_provider: string; instapay_link: string; instructions_ar: string; instructions_en: string };
-  available_methods: Array<{ id: string; label_ar: string; label_en: string }>;
   can_upload_proof: boolean; can_cancel: boolean;
   proofs: Array<{ status: string; reject_reason: string | null; transaction_ref: string; created_at: number }>;
   items: Array<{ id: string; product_title_ar: string; product_title_en: string; plan_name_ar: string; plan_name_en: string; qty: number; line_total_piastres: number; fields: Record<string, string>;
@@ -50,8 +47,6 @@ export function OrderPage({ number }: { number: string }) {
   if (state !== 'ok' || !order) return <div className="mx-auto max-w-2xl px-4 py-16"><Alert kind={state === 'error' ? 'bad' : 'warn'} title={state === 'error' ? t('common.error') : t('order.notFound')}><Link href={href('/support')} className="underline">{t('support.form')}</Link></Alert></div>;
 
   const link = window.location.href;
-  const awaitingPayment = ['awaiting_transfer', 'rejected', 'proof_submitted'].includes(order.payment_status);
-  const dest = order.payment_destination;
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 px-4 py-8">
@@ -82,7 +77,7 @@ export function OrderPage({ number }: { number: string }) {
       )}
       {order.refund && <Alert kind="warn" title={t('order.refund')}>{order.refund.refunded_at ? t('order.refund.done', { amount: money(order.refund.amount_piastres, lang) }) : t('order.refund.requested')}</Alert>}
 
-      {awaitingPayment && dest && <PaymentBox order={order} onChange={load} orderKey={key} />}
+      {order.payment_status === 'awaiting_transfer' && <PaymentContactBox whatsapp={order.support.whatsapp} email={order.support.email} number={order.number} />}
       {order.can_upload_proof && <ProofForm number={order.number} orderKey={key} onDone={load} hasProof={order.payment_status === 'proof_submitted'} />}
       {order.proofs.length > 0 && (
         <section className="card p-5">
@@ -131,39 +126,17 @@ export function OrderPage({ number }: { number: string }) {
   );
 }
 
-function PaymentBox({ order, orderKey, onChange }: { order: OrderView; orderKey: string; onChange: () => void }) {
-  const { t, lang, pick } = useI18n();
-  const d = order.payment_destination!;
-  const [busy, setBusy] = useState(false);
-  const row = (label: string, value: string, copy = true) => value ? (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-ink/50 px-3 py-2.5">
-      <div><p className="text-xs text-dim">{label}</p><p className="font-semibold ltr text-start break-all">{value}</p></div>
-      {copy && <CopyButton value={value} label={t('order.copy')} copiedLabel={t('order.copied')} />}
-    </div>
-  ) : null;
+function PaymentContactBox({ whatsapp, email, number }: { whatsapp?: string; email?: string; number: string }) {
+  const { t, pick } = useI18n();
   return (
     <section className="card glow space-y-3 p-5">
-      <h2 className="flex items-center gap-2 text-lg font-bold">{d.type === 'bank' ? <Icon.bank className="text-cyan" /> : <Icon.wallet className="text-cyan" />} {t('order.pay.title')} {pick(d.label_ar, d.label_en)}</h2>
-      {row(t('order.pay.amount'), money(order.total_piastres, 'en').replace('EGP ', ''), true)}
-      <p className="-mt-1 text-xs text-dim">{lang === 'ar' ? 'جنيه مصري' : 'Egyptian pounds'}</p>
-      {row(d.type === 'wallet' ? `${t('order.pay.account')} (${d.wallet_provider})` : t('order.pay.account'), d.account)}
-      {row(t('order.pay.name'), d.account_name, false)}
-      {d.type === 'bank' && row(t('order.pay.bank'), d.bank_name, false)}
-      {d.type === 'bank' && row(t('order.pay.iban'), d.iban)}
-      {row(t('order.pay.reference'), order.number)}
-      {pick(d.instructions_ar, d.instructions_en) && <p className="text-sm text-muted whitespace-pre-line">{pick(d.instructions_ar, d.instructions_en)}</p>}
-      {d.instapay_link && <a href={d.instapay_link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan/50 px-4 font-semibold text-cyan">{t('order.pay.openInstapay')} <Icon.external width={16} height={16} /></a>}
-      {order.available_methods.length > 1 && order.payment_status !== 'proof_submitted' && (
-        <label className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          {t('order.pay.change')}
-          <Select className="w-auto" value={order.payment_method_id} disabled={busy} onChange={async (e) => {
-            setBusy(true);
-            try { await api.post(`/api/public/orders/${order.number}/payment-method`, { method_id: e.target.value }, { 'x-order-key': orderKey }); onChange(); } finally { setBusy(false); }
-          }}>
-            {order.available_methods.map((m) => <option key={m.id} value={m.id}>{pick(m.label_ar, m.label_en)}</option>)}
-          </Select>
-        </label>
-      )}
+      <h2 className="flex items-center gap-2 text-lg font-bold"><Icon.wallet className="text-cyan" /> {t('order.pay.contactTitle')}</h2>
+      <p className="text-muted">{t('order.pay.contactBody')}</p>
+      <div className="flex flex-wrap gap-2">
+        {whatsapp && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan/50 px-4 text-sm font-semibold text-cyan" target="_blank" rel="noopener noreferrer"
+          href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`${pick('طلب رقم', 'Order')} ${number}`)}`}><Icon.whatsapp width={18} height={18} /> {t('support.whatsapp')}</a>}
+        {email && <a className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-cyan/60" href={`mailto:${email}?subject=${encodeURIComponent(number)}`}><Icon.mail width={18} height={18} /> <span className="ltr">{email}</span></a>}
+      </div>
     </section>
   );
 }

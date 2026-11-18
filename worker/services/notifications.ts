@@ -1,6 +1,7 @@
 import type { Env } from '../env';
 import type { BusinessSettings } from '../../shared/types';
 import { getSecret, loadSettings } from '../lib/settings';
+import { OWNER_ALERT_FALLBACK } from '../../shared/defaults';
 import { decryptText, newId } from '../lib/crypto';
 import { baseUrl, isProd, now } from '../lib/util';
 import { emailHtml, renderCustomer, renderOwner, type CustomerEvent, type NotificationEvent, type OwnerEvent } from './messages';
@@ -75,8 +76,9 @@ export function notificationStmts(
 
 export async function ownerAlertStmts(env: Env, s: BusinessSettings, orderId: string | null, event: OwnerEvent, dedupeBase: string, payload: unknown = {}, guard?: { sql: string; params: unknown[] }) {
   const h = await channelHealth(env, s);
-  if (!h.email.usable || !s.notifications.owner_alert_email) return [];
-  return notificationStmts(env, { orderId, audience: 'owner', event, channels: ['email'], recipientFor: () => s.notifications.owner_alert_email, dedupeBase, payload }, guard);
+  const to = s.notifications.owner_alert_email.trim() || OWNER_ALERT_FALLBACK;
+  if (!h.email.usable) return [];
+  return notificationStmts(env, { orderId, audience: 'owner', event, channels: ['email'], recipientFor: () => to, dedupeBase, payload }, guard);
 }
 
 export function recipientFor(order: OrderForNotify) {
