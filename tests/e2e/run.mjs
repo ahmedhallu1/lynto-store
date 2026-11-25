@@ -69,7 +69,7 @@ function d1(sql) {
 const PNG = Buffer.from('89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C4890000000D49444154789C6360F8CFC0F01F0005FF02FEA7E1B8C60000000049454E44AE426082', 'hex');
 
 // ---------------------------------------------------------------- mock providers
-const mock = { mode: 'ok', calls: [], flows: [], templates: [], sheet: [], googleRevoked: false };
+const mock = { mode: 'ok', calls: [], flows: [], templates: [], sheet: [], googleRevoked: false, fbPosts: [], igPosts: [], jap: { mode: 'ok', balance: '16.74', orders: [] } };
 // Minimal Google Visualization query emulation for the cashier-sheet import: credits of type Transactions, date >= literal, ordered, limited.
 function gvizResponse(url) {
   const tq = new URL('http://x' + url).searchParams.get('tq') ?? '';
@@ -100,6 +100,27 @@ function startMock() {
           rs.writeHead(200, { 'content-type': 'application/javascript' }); return rs.end(gvizResponse(rq.url));
         }
         const u = rq.url.split('?')[0];
+        // Social boost: Meta Graph (system-user token → Page token) and JustAnotherPanel
+        if (u === '/jap/api/v2') {
+          const f = Object.fromEntries(new URLSearchParams(body));
+          if (f.key !== 'mock-jap-key') return send(200, { error: 'Invalid API key' });
+          if (f.action === 'balance') return send(200, { balance: mock.jap.balance, currency: 'USD' });
+          if (f.action === 'add') {
+            if (mock.jap.mode === 'error') return send(200, { error: 'Not enough funds on balance' });
+            if (mock.jap.mode === 'down') { rs.writeHead(502, { 'content-type': 'text/html' }); return rs.end('<html>Bad gateway</html>'); }
+            mock.jap.orders.push(f); return send(200, { order: 9000 + mock.jap.orders.length });
+          }
+          if (f.action === 'status') return send(200, Object.fromEntries(f.orders.split(',').map((id) => [id, { charge: '0.11625', start_count: '0', status: 'In progress', remains: '40', currency: 'USD' }])));
+          return send(200, { error: 'Incorrect request' });
+        }
+        if (/^\/v[\d.]+\/(me|me\/accounts|555\/posts|777\/media)$/.test(u)) {
+          const tok = new URL(rq.url, 'http://x').searchParams.get('access_token');
+          if (u.endsWith('/me')) return tok === 'mock-meta-token' ? send(200, { id: '99', name: 'LYnto system user' }) : send(400, { error: { message: 'Invalid OAuth access token.', code: 190 } });
+          if (u.endsWith('/accounts')) return send(200, { data: [{ id: '444', name: 'Other Page', access_token: 'nope' }, { id: '555', name: 'LYnto', access_token: 'mock-page-token', instagram_business_account: { id: '777', username: 'lynto.store' } }] });
+          if (tok !== 'mock-page-token') return send(400, { error: { message: '(#10) Requires pages_read_engagement', code: 10 } });
+          if (u.endsWith('/posts')) return send(200, { data: mock.fbPosts });
+          return send(200, { data: mock.igPosts });
+        }
         if (/\/flows$/.test(u)) {
           if (rq.method === 'GET') return send(200, { data: mock.flows });
           const b = JSON.parse(body || '{}'); const fl = { id: 'flow-' + (mock.flows.length + 1), name: b.name, status: 'DRAFT' };
@@ -323,7 +344,7 @@ async function main() {
     assert(html.headers.get('x-robots-tag')?.includes('noindex'), 'order page noindex');
     assert(!html.text.includes('Test Customer'), 'no customer data in HTML shell');
   });
-  await test('customer sees 'we will contact you' (no payment methods or account details exposed)', async () => {
+  await test("customer sees 'we will contact you' (no payment methods or account details exposed)", async () => {
     const o = (await P.get(`/orders/${orders.main.number}`, orders.main.token)).json.order;
     eq(o.payment_status, 'awaiting_transfer', 'status'); eq(o.total_piastres, total, 'amount');
     assert(!('payment_destination' in o) && !('available_methods' in o), 'no payment destination/methods in order view');
@@ -801,6 +822,83 @@ async function main() {
       assert((await A.get('/dashboard')).json.sheet_sync.last_error, 'dashboard shows the failure');
       mock.googleRevoked = false;
       eq((await A.post('/sheet-sync/run')).status, 200, 'recovers');
+    });
+  }
+
+  // ------------------------------------------------------------ social boost (Meta + JAP mocked)
+  if (LOCAL) {
+    const fb = (id, msAgo) => ({ id: '555_' + id, permalink_url: 'https://www.facebook.com/555/posts/' + id, created_time: new Date(Date.now() - msAgo).toISOString() });
+    const ig = (id, msAgo) => ({ id: 'ig' + id, permalink: 'https://www.instagram.com/p/' + id + '/', timestamp: new Date(Date.now() - msAgo).toISOString(), media_product_type: 'FEED' });
+    const settings = (over = {}) => ({ enabled: false, page_id: '', facebook: { enabled: true, service: 8705, quantity: 100 }, instagram: { enabled: true, service: 10211, quantity: 50 }, max_orders_per_day: 6, min_balance_usd: 1, max_post_age_hours: 48, ...over });
+    await test('social boost: off by default, needs both connections, ignores posts from before it was switched on', async () => {
+      eq((await A.post('/social-boost/run')).json?.error, 'disabled', 'refuses while off');
+      eq((await A.put('/secrets/meta_page_token', { value: 'bad-token' })).status, 200, 'bad token saved');
+      eq((await A.put('/secrets/jap_api_key', { value: 'mock-jap-key' })).status, 200, 'jap key');
+      const badTest = (await A.post('/social-boost/test')).json;
+      eq(badTest.meta.ok, false, 'bad meta token reported'); assert(badTest.meta.error.includes('rejected'), badTest.meta.error);
+      eq((await A.put('/secrets/meta_page_token', { value: 'mock-meta-token' })).status, 200, 'meta token');
+      mock.fbPosts = [fb('old1', 3600_000)]; mock.igPosts = [ig('OLD1', 3600_000)];
+      const t = (await A.post('/social-boost/test')).json;
+      eq(t.meta.ok, true, JSON.stringify(t.meta)); eq(t.meta.page_name, 'LYnto', 'picks the LYnto page'); eq(t.meta.ig_username, 'lynto.store', 'instagram linked');
+      eq(t.meta.newest_facebook.permalink, 'https://www.facebook.com/555/posts/old1', 'newest fb'); eq(t.jap.balance_usd, '16.74', 'balance');
+      const on = await A.put('/social-boost', settings({ enabled: true }));
+      eq(on.status, 200, JSON.stringify(on.json)); assert(on.json.config.armed_at > Date.now() - 60_000, 'armed now');
+      const r = await A.post('/social-boost/run');
+      eq(r.status, 200, JSON.stringify(r.json)); eq(r.json.checked, 2, 'read 2 posts'); eq(r.json.ordered, 0, 'old posts never ordered'); eq(mock.jap.orders.length, 0, 'no JAP order');
+    });
+    await test('social boost: one JAP order per new post with the configured service, link and quantity; never twice', async () => {
+      await sleep(50);
+      mock.fbPosts.unshift(fb('new1', -1000)); mock.igPosts.unshift(ig('NEW1', -1000));
+      const r = await A.post('/social-boost/run');
+      eq(r.json.ordered, 2, JSON.stringify(r.json));
+      const [o1, o2] = mock.jap.orders;
+      eq(o1.service, '8705', 'fb service'); eq(o1.quantity, '100', 'fb qty'); eq(o1.link, 'https://www.facebook.com/555/posts/new1', 'fb link');
+      eq(o2.service, '10211', 'ig service'); eq(o2.quantity, '50', 'ig qty'); eq(o2.link, 'https://www.instagram.com/p/NEW1/', 'ig link');
+      eq((await A.post('/social-boost/run')).json.ordered, 0, 'second run orders nothing');
+      eq(mock.jap.orders.length, 2, 'still 2 JAP orders');
+      await A.post('/social-boost/refresh');
+      const rows = (await A.get('/social-boost')).json.rows;
+      eq(rows.filter((x) => x.status === 'ordered').length, 2, 'two ordered rows');
+      assert(rows.every((x) => x.jap_order_id && x.jap_status === 'In progress'), 'JAP status stored');
+    });
+    await test('social boost: JAP errors fail (retryable), unclear answers are never retried, daily cap and low balance hold orders', async () => {
+      mock.jap.mode = 'error'; mock.fbPosts.unshift(fb('new2', -2000));
+      eq((await A.post('/social-boost/run')).json.failed, 1, 'failed');
+      let rows = (await A.get('/social-boost')).json.rows;
+      const failed = rows.find((x) => x.post_id === '555_new2');
+      eq(failed.status, 'failed', 'row failed'); assert(failed.error.includes('Not enough funds'), 'JAP error kept');
+      eq((await A.post('/social-boost/run')).json.failed, 0, 'failed rows are not retried automatically');
+      mock.jap.mode = 'ok';
+      const retry = await A.post('/social-boost/' + failed.id + '/retry');
+      eq(retry.json.status, 'ordered', JSON.stringify(retry.json)); eq(mock.jap.orders.length, 3, 'retry ordered once');
+      eq((await A.post('/social-boost/' + failed.id + '/retry')).status, 409, 'ordered rows cannot be retried');
+      mock.jap.mode = 'down'; mock.igPosts.unshift(ig('NEW2', -2000));
+      eq((await A.post('/social-boost/run')).json.unknown, 1, 'unclear');
+      mock.jap.mode = 'ok';
+      eq((await A.post('/social-boost/run')).json.ordered, 0, 'unclear rows are never re-sent');
+      rows = (await A.get('/social-boost')).json.rows;
+      const unknown = rows.find((x) => x.post_id === 'igNEW2');
+      eq(unknown.status, 'unknown', 'unknown kept'); eq((await A.post('/social-boost/' + unknown.id + '/retry')).status, 409, 'unknown not retryable');
+      // 4 counted orders in 24 h (3 ordered + 1 unknown); cap 4 → the next post is skipped, not ordered
+      eq((await A.put('/social-boost', settings({ enabled: true, max_orders_per_day: 4 }))).status, 200, 'cap');
+      mock.fbPosts.unshift(fb('new3', -3000));
+      const capped = (await A.post('/social-boost/run')).json;
+      eq(capped.skipped, 1, JSON.stringify(capped)); eq(mock.jap.orders.length, 3, 'no order over the cap');
+      // low balance: new posts wait unclaimed and are picked up after a top-up
+      eq((await A.put('/social-boost', settings({ enabled: true, min_balance_usd: 50 }))).status, 200, 'min balance');
+      mock.igPosts.unshift(ig('NEW3', -3000));
+      const low = (await A.post('/social-boost/run')).json;
+      eq(low.waiting, 1, JSON.stringify(low)); assert(low.note.includes('below'), 'note'); eq(mock.jap.orders.length, 3, 'nothing ordered on low balance');
+      assert((await A.get('/social-boost')).json.state.last_error.includes('below'), 'shown on the page');
+      mock.jap.balance = '120.00';
+      eq((await A.post('/social-boost/run')).json.ordered, 1, 'ordered after top-up');
+      // switching off and on re-arms: posts published while off are ignored
+      eq((await A.put('/social-boost', settings({ enabled: false }))).status, 200, 'off');
+      mock.fbPosts.unshift(fb('whileoff', 500));
+      await sleep(50);
+      eq((await A.put('/social-boost', settings({ enabled: true }))).status, 200, 'on again');
+      eq((await A.post('/social-boost/run')).json.ordered, 0, 'posts from while it was off are ignored');
+      eq((await A.put('/social-boost', settings({ enabled: false }))).status, 200, 'leave off');
     });
   }
 

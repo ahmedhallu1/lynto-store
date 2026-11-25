@@ -5,6 +5,7 @@ import { dispatchPending, notificationStmts, ownerAlertStmts, planCustomerChanne
 import { cancelOrder } from './orders';
 import { goLiveIfDue } from './whatsapp';
 import { sheetSyncIfDue } from './sheet-sync';
+import { socialBoostIfDue } from './social-boost';
 
 /** Runs every 5 minutes in production. Each job is idempotent. */
 export async function runScheduled(env: Env) {
@@ -65,6 +66,10 @@ export async function runScheduled(env: Env) {
   // 3c) Cashier-sheet import (daily; continues a pass in progress one chunk per tick).
   const sheet = await sheetSyncIfDue(env).catch((e) => { report.sheet_error = 1; console.error(JSON.stringify({ level: 'error', job: 'sheet_sync', message: String(e?.message ?? e).slice(0, 300) })); return null; });
   if (sheet) report.sheet_imported = sheet.imported;
+
+  // 3d) Automatic JAP orders for new Facebook / Instagram posts (only when the owner switched it on).
+  const boost = await socialBoostIfDue(env).catch(() => null);
+  if (boost) { report.boost_ordered = boost.ordered; report.boost_failed = boost.failed + boost.unknown; }
 
   // 4) Send/retry pending notifications.
   report.dispatched = (await dispatchPending(env, { limit: 50 })).processed;

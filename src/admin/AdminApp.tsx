@@ -7,6 +7,7 @@ import { Alert, Button, Field, Input, Spinner, cx } from '../components/ui';
 import { usePageTitle } from '../components/usePageTitle';
 import { Dashboard } from './Dashboard';
 import { SalesPage } from './Sales';
+import { SocialBoost } from './SocialBoost';
 import { OrdersList, OrderDetail } from './Orders';
 import { ProductsList } from './Products';
 import { ProductEditor } from './ProductEditor';
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/admin', label: 'Dashboard' },
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/sales', label: 'Sales' },
+  { to: '/admin/social-boost', label: 'Social boost' },
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/pricing', label: 'Pricing' },
   { to: '/admin/inbox', label: 'Notifications & support' },
@@ -123,6 +125,7 @@ function Shell({ status, onSignOut }: { status: Status; onSignOut: () => void })
   else if (pathname === '/admin/orders') page = <OrdersList />;
   else if ((m = match('/admin/orders/:id', pathname))) page = <OrderDetail key={m.id} id={m.id} />;
   else if (pathname === '/admin/sales') page = <SalesPage />;
+  else if (pathname === '/admin/social-boost') page = <SocialBoost />;
   else if (pathname === '/admin/products') page = <ProductsList />;
   else if (pathname === '/admin/products/new') page = <ProductEditor key="new" id={null} />;
   else if ((m = match('/admin/products/:id', pathname))) page = <ProductEditor key={m.id} id={m.id} />;

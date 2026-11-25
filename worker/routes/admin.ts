@@ -23,6 +23,7 @@ import { composeAndSend, resendDomainStatus } from '../services/mail';
 import { eraseCustomerData } from '../services/privacy';
 import { createFlows, createMissingTemplates, goLiveCheck, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
 import { enforceRate } from '../lib/util';
+import { boostConnections, japBalance, latestPosts, loadSocialBoost, metaContext, refreshBoostStatuses, retryBoost, runSocialBoost, saveSocialBoost, SocialBoostError } from '../services/social-boost';
 import { googleConnected, loadSheetSync, runSheetSync, saveSheetSync, SheetSyncError, startOf } from '../services/sheet-sync';
 
 export const admin = new Hono<AppContext>();
@@ -907,6 +908,79 @@ admin.post('/sheet-sync/run', async (c) => {
     if (e instanceof SheetSyncError) throw new HttpError(e.code === 'not_connected' ? 409 : 502, e.code, e.message);
     throw e;
   }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Social boost: automatic JAP orders for new Facebook / Instagram posts
+// ---------------------------------------------------------------------------------------------
+const boostErr = (e: unknown) => {
+  if (e instanceof SocialBoostError) return new HttpError(e.code === 'not_connected' || e.code === 'disabled' ? 409 : 502, e.code, e.message);
+  return e;
+};
+admin.get('/social-boost', async (c) => {
+  const { config, state } = await loadSocialBoost(c.env);
+  const conn = await boostConnections(c.env);
+  const [rows, day] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT * FROM social_boosts ORDER BY id DESC LIMIT 50'),
+    c.env.DB.prepare(`SELECT COUNT(*) AS orders FROM social_boosts WHERE status IN ('pending','ordered','unknown') AND created_at > ?`).bind(now() - 86_400_000),
+  ]);
+  return c.json({ config, state, connected: { meta: conn.meta, jap: conn.jap }, secrets: await secretStatus(c.env), rows: rows.results, last_24h: (day.results[0] as any)?.orders ?? 0 });
+});
+const target = z.object({ enabled: z.boolean(), service: z.number().int().min(1).max(10_000_000), quantity: z.number().int().min(1).max(100_000) });
+admin.put('/social-boost', async (c) => {
+  const b = await body(c, z.object({
+    enabled: z.boolean(), page_id: z.string().trim().regex(/^\d*$/).max(30), facebook: target, instagram: target,
+    max_orders_per_day: z.number().int().min(1).max(50), min_balance_usd: z.number().min(0).max(1000), max_post_age_hours: z.number().int().min(1).max(168),
+  }));
+  const cur = await loadSocialBoost(c.env);
+  // Switching on (again) arms it from now: posts published earlier, or while it was off, are never ordered.
+  const armed_at = b.enabled ? (cur.config.enabled && cur.config.armed_at ? cur.config.armed_at : now()) : cur.config.armed_at;
+  const config = { ...cur.config, ...b, armed_at };
+  await saveSocialBoost(c.env, { config, state: cur.state }, actor(c));
+  await audit(c.env, actor(c), 'social_boost_settings_updated', 'settings', 'social_boost', config);
+  return c.json({ config });
+});
+admin.post('/social-boost/test', async (c) => {
+  await enforceRate(c.env, `boost-test:${c.get('admin').id}`, 30, 3600_000);
+  const conn = await boostConnections(c.env);
+  const { config, state } = await loadSocialBoost(c.env);
+  const out: any = { meta: null, jap: null };
+  if (conn.metaToken) {
+    try {
+      const ctx = await metaContext(c.env, conn.metaToken, config.page_id);
+      const posts = await latestPosts(c.env, ctx);
+      const newest = (p: string) => posts.filter((x) => x.platform === p).sort((a, b) => b.posted_at - a.posted_at)[0] ?? null;
+      out.meta = { ok: true, page_id: ctx.pageId, page_name: ctx.pageName, ig_username: ctx.igUsername, instagram_linked: !!ctx.igId, newest_facebook: newest('facebook'), newest_instagram: newest('instagram') };
+      await saveSocialBoost(c.env, { config, state: { ...state, page_id: ctx.pageId, page_name: ctx.pageName, ig_id: ctx.igId, ig_username: ctx.igUsername } });
+    } catch (e: any) { out.meta = { ok: false, error: String(e?.message ?? e).slice(0, 400) }; }
+  }
+  if (conn.japKey) {
+    try { const bal = await japBalance(c.env, conn.japKey); out.jap = { ok: true, balance_usd: bal.raw }; }
+    catch (e: any) { out.jap = { ok: false, error: String(e?.message ?? e).slice(0, 300) }; }
+  }
+  return c.json(out);
+});
+admin.post('/social-boost/run', async (c) => {
+  await enforceRate(c.env, `boost-run:${c.get('admin').id}`, 30, 3600_000);
+  try {
+    const r = await runSocialBoost(c.env, 'manual');
+    await audit(c.env, actor(c), 'social_boost_run', 'settings', 'social_boost', r);
+    return c.json(r);
+  } catch (e) { throw boostErr(e); }
+});
+admin.post('/social-boost/refresh', async (c) => {
+  const conn = await boostConnections(c.env);
+  if (!conn.japKey) throw new HttpError(409, 'not_connected', 'Missing JAP API key.');
+  await refreshBoostStatuses(c.env, conn.japKey);
+  return c.json({ ok: true });
+});
+admin.post('/social-boost/:id/retry', async (c) => {
+  try {
+    const r = await retryBoost(c.env, Number(c.req.param('id')));
+    if (!r) throw new HttpError(409, 'not_retryable', 'Only failed or skipped rows can be retried. Check “unknown” rows on JAP first.');
+    await audit(c.env, actor(c), 'social_boost_retry', 'social_boost', c.req.param('id'), r);
+    return c.json(r);
+  } catch (e) { throw boostErr(e); }
 });
 
 admin.post('/system/run-jobs', async (c) => {

@@ -22,6 +22,8 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string; // optional: OAuth client for the cashier-sheet import (scripts/google-connect.mjs)
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REFRESH_TOKEN?: string; // read-only Google Sheets access of the owner's account
+  META_PAGE_TOKEN?: string; // optional: Meta token that can read the LYnto Page + Instagram posts (Admin → Social boost)
+  JAP_API_KEY?: string; // optional: JustAnotherPanel API key (Admin → Social boost)
 
   // Optional Cloudflare Access hardening for /admin
   ACCESS_TEAM_DOMAIN?: string;

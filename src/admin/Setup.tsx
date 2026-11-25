@@ -208,7 +208,7 @@ function ScheduleEditor({ s, setS }: { s: BusinessSettings; setS: (s: BusinessSe
   );
 }
 
-function SecretInput({ name, label, secrets, onSaved, setMsg }: { name: string; label: string; secrets: SettingsResp['secrets']; onSaved: () => void; setMsg: (m: any) => void }) {
+export function SecretInput({ name, label, secrets, onSaved, setMsg }: { name: string; label: string; secrets: SettingsResp['secrets']; onSaved: () => void; setMsg: (m: any) => void }) {
   const [v, setV] = useState('');
   const st = secrets[name];
   return (
