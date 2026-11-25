@@ -115,8 +115,11 @@ function startMock() {
         }
         if (/^\/v[\d.]+\/(me|me\/accounts|555\/posts|777\/media)$/.test(u)) {
           const tok = new URL(rq.url, 'http://x').searchParams.get('access_token');
-          if (u.endsWith('/me')) return tok === 'mock-meta-token' ? send(200, { id: '99', name: 'LYnto system user' }) : send(400, { error: { message: 'Invalid OAuth access token.', code: 190 } });
-          if (u.endsWith('/accounts')) return send(200, { data: [{ id: '444', name: 'Other Page', access_token: 'nope' }, { id: '555', name: 'LYnto', access_token: 'mock-page-token', instagram_business_account: { id: '777', username: 'lynto.store' } }] });
+          const fields = new URL(rq.url, 'http://x').searchParams.get('fields') ?? '';
+          if (tok !== 'mock-meta-token' && tok !== 'mock-page-token') return send(400, { error: { message: 'Invalid OAuth access token.', code: 190 } });
+          // Like real Meta: Page-only fields on a User node, or the accounts edge on a Page, are (#100) errors.
+          if (u.endsWith('/me')) return tok === 'mock-meta-token' ? (/category|instagram_business_account/.test(fields) ? send(400, { error: { message: '(#100) Tried accessing nonexisting field (category) on node type (User)', code: 100 } }) : send(200, { id: '99', name: 'LYnto system user' })) : send(200, { id: '555', name: 'LYnto', instagram_business_account: { id: '777', username: 'lynto.store' } });
+          if (u.endsWith('/accounts')) return tok === 'mock-page-token' ? send(400, { error: { message: '(#100) Tried accessing nonexisting field (accounts) on node type (Page)', code: 100 } }) : send(200, { data: [{ id: '444', name: 'Other Page', access_token: 'nope' }, { id: '555', name: 'LYnto', access_token: 'mock-page-token', instagram_business_account: { id: '777', username: 'lynto.store' } }] });
           if (tok !== 'mock-page-token') return send(400, { error: { message: '(#10) Requires pages_read_engagement', code: 10 } });
           if (u.endsWith('/posts')) return send(200, { data: mock.fbPosts });
           return send(200, { data: mock.igPosts });
@@ -840,6 +843,10 @@ async function main() {
       mock.fbPosts = [fb('old1', 3600_000)]; mock.igPosts = [ig('OLD1', 3600_000)];
       const t = (await A.post('/social-boost/test')).json;
       eq(t.meta.ok, true, JSON.stringify(t.meta)); eq(t.meta.page_name, 'LYnto', 'picks the LYnto page'); eq(t.meta.ig_username, 'lynto.store', 'instagram linked');
+      eq((await A.put('/secrets/meta_page_token', { value: 'mock-page-token' })).status, 200, 'page token');
+      const pt = (await A.post('/social-boost/test')).json;
+      eq(pt.meta.ok, true, 'page token works: ' + JSON.stringify(pt.meta)); eq(pt.meta.ig_username, 'lynto.store', 'page token instagram');
+      eq((await A.put('/secrets/meta_page_token', { value: 'mock-meta-token' })).status, 200, 'back to system-user token');
       eq(t.meta.newest_facebook.permalink, 'https://www.facebook.com/555/posts/old1', 'newest fb'); eq(t.jap.balance_usd, '16.74', 'balance');
       const on = await A.put('/social-boost', settings({ enabled: true }));
       eq(on.status, 200, JSON.stringify(on.json)); assert(on.json.config.armed_at > Date.now() - 60_000, 'armed now');

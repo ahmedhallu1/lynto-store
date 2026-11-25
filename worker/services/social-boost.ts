@@ -111,15 +111,21 @@ export type MetaContext = { pageId: string; pageName: string; pageToken: string;
 
 /** Works with a Page token (/me is the Page) or a user / system-user token (/me/accounts lists the Pages it manages). */
 export async function metaContext(env: Env, token: string, wantPageId = ''): Promise<MetaContext> {
-  const me = await graph<PageInfo>(env, '/me', token, { fields: 'id,name,category,instagram_business_account{id,username}' });
+  // A user / system-user token lists its Pages under /me/accounts. A Page token has no "accounts" edge (Meta answers #100),
+  // and /me is then the Page itself. Never ask a User node for Page-only fields such as `category` (also #100).
   let page: PageInfo | undefined;
   let pageToken = token;
-  if (me.category) page = me;
-  else {
-    const list = await graph<{ data: PageInfo[] }>(env, '/me/accounts', token, { fields: 'id,name,access_token,instagram_business_account{id,username}', limit: '50' });
-    const pages = list.data ?? [];
+  let pages: PageInfo[] | null = null;
+  try {
+    pages = (await graph<{ data: PageInfo[] }>(env, '/me/accounts', token, { fields: 'id,name,access_token,instagram_business_account{id,username}', limit: '50' })).data ?? [];
+  } catch (e) {
+    if (!(e instanceof SocialBoostError) || e.code !== 'meta_error') throw e;
+  }
+  if (pages) {
     page = (wantPageId && pages.find((p) => p.id === wantPageId)) || pages.find((p) => /lynto/i.test(p.name)) || pages[0];
     if (page?.access_token) pageToken = page.access_token;
+  } else {
+    page = await graph<PageInfo>(env, '/me', token, { fields: 'id,name,instagram_business_account{id,username}' });
   }
   if (!page) throw new SocialBoostError('no_page', 'The Meta token cannot see any Facebook Page. Give the token access to the LYnto Page.');
   return { pageId: page.id, pageName: page.name, pageToken, igId: page.instagram_business_account?.id ?? null, igUsername: page.instagram_business_account?.username ?? null };
