@@ -23,7 +23,7 @@ import { composeAndSend, resendDomainStatus } from '../services/mail';
 import { eraseCustomerData } from '../services/privacy';
 import { createFlows, createMissingTemplates, goLiveCheck, syncApprovedTemplates, whatsappStatus } from '../services/whatsapp';
 import { enforceRate } from '../lib/util';
-import { boostConnections, japBalance, latestPosts, loadSocialBoost, metaContext, refreshBoostStatuses, retryBoost, runSocialBoost, saveSocialBoost, SocialBoostError } from '../services/social-boost';
+import { boostConnections, japBalance, latestPosts, loadSocialBoost, metaContext, refreshBoostStatuses, resolveUnknownBoost, retryBoost, runSocialBoost, saveSocialBoost, SocialBoostError } from '../services/social-boost';
 import { googleConnected, loadSheetSync, runSheetSync, saveSheetSync, SheetSyncError, startOf } from '../services/sheet-sync';
 
 export const admin = new Hono<AppContext>();
@@ -979,6 +979,19 @@ admin.post('/social-boost/:id/retry', async (c) => {
     const r = await retryBoost(c.env, Number(c.req.param('id')));
     if (!r) throw new HttpError(409, 'not_retryable', 'Only failed or skipped rows can be retried. Check “unknown” rows on JAP first.');
     await audit(c.env, actor(c), 'social_boost_retry', 'social_boost', c.req.param('id'), r);
+    return c.json(r);
+  } catch (e) { throw boostErr(e); }
+});
+
+admin.post('/social-boost/:id/resolve', async (c) => {
+  const b = await body(c, z.discriminatedUnion('found', [
+    z.object({ found: z.literal(true), order_id: z.string().trim().min(1).max(30) }),
+    z.object({ found: z.literal(false) }),
+  ]));
+  try {
+    const r = await resolveUnknownBoost(c.env, Number(c.req.param('id')), b);
+    if (!r) throw new HttpError(409, 'not_unclear', 'Only “unclear” rows can be resolved.');
+    await audit(c.env, actor(c), 'social_boost_resolved', 'social_boost', c.req.param('id'), r);
     return c.json(r);
   } catch (e) { throw boostErr(e); }
 });

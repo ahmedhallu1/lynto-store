@@ -6,7 +6,7 @@
 //
 // Money safety:
 // - A post is claimed in D1 (UNIQUE platform+post_id) before the order is sent, so it is never ordered twice.
-// - A network error / timeout / non-JSON answer from JAP leaves the row 'unknown' (the order may exist) and is NEVER retried
+// - A network error / timeout (60 s for "add") / non-JSON answer from JAP leaves the row 'unknown' (the order may exist) and is NEVER retried
 //   automatically; only an explicit JAP `{error}` answer marks it 'failed' (the owner can retry from the admin page).
 // - Rolling 24 h cap on orders, a minimum JAP balance, and a maximum post age (older posts are ignored).
 // - Posts published before the switch was turned on are never ordered.
@@ -45,6 +45,7 @@ const KEY = 'social_boost';
 const GRAPH_VERSION = 'v23.0';
 const MIN_INTERVAL_MS = 4 * 60_000;
 const STATUS_REFRESH_MS = 30 * 60_000;
+const ADD_TIMEOUT_MS = 60_000;
 
 export const DEFAULT_BOOST_CONFIG: SocialBoostConfig = {
   enabled: false,
@@ -152,10 +153,10 @@ export async function latestPosts(env: Env, ctx: MetaContext): Promise<Post[]> {
 const japUrl = (env: Env) => (!isProd(env) && env.TEST_PROVIDER_BASE ? env.TEST_PROVIDER_BASE.replace(/\/$/, '') + '/jap' : 'https://justanotherpanel.com') + '/api/v2';
 
 type JapResult = { kind: 'ok'; data: any } | { kind: 'error'; message: string } | { kind: 'unknown'; message: string };
-async function jap(env: Env, key: string, params: Record<string, string>): Promise<JapResult> {
+async function jap(env: Env, key: string, params: Record<string, string>, timeoutMs = 20_000): Promise<JapResult> {
   let res: Response;
   try {
-    res = await fetch(japUrl(env), { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ key, ...params }).toString(), signal: AbortSignal.timeout(20_000) });
+    res = await fetch(japUrl(env), { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ key, ...params }).toString(), signal: AbortSignal.timeout(timeoutMs) });
   } catch (e: any) { return { kind: 'unknown', message: `JAP did not answer (${String(e?.message ?? e).slice(0, 120)})` }; }
   const text = await res.text();
   const j = parseJSON<any>(text, null);
@@ -175,7 +176,9 @@ export async function japBalance(env: Env, key: string): Promise<{ balance: numb
 
 /** Places the order for a row already claimed as 'pending'. */
 async function placeOrder(env: Env, key: string, rowId: number, service: number, link: string, quantity: number) {
-  const r = await jap(env, key, { action: 'add', service: String(service), link, quantity: String(quantity) });
+  // JAP sometimes takes well over 20 s to accept an order. Waiting costs no CPU time, and an abort leaves the order in
+  // doubt ('unknown'), so give "add" a generous limit.
+  const r = await jap(env, key, { action: 'add', service: String(service), link, quantity: String(quantity) }, ADD_TIMEOUT_MS);
   const t = now();
   if (r.kind === 'ok' && r.data.order !== undefined && r.data.order !== null) {
     await env.DB.prepare(`UPDATE social_boosts SET status = 'ordered', jap_order_id = ?, error = NULL, updated_at = ? WHERE id = ?`).bind(String(r.data.order), t, rowId).run();
@@ -267,6 +270,35 @@ export async function retryBoost(env: Env, id: number) {
   if (claim.meta.changes !== 1) return null;
   const row = await env.DB.prepare('SELECT * FROM social_boosts WHERE id = ?').bind(id).first<any>();
   return placeOrder(env, conn.japKey, id, row.service, row.permalink, row.quantity);
+}
+
+/**
+ * Owner resolves an 'unknown' row after checking Orders on justanotherpanel.com:
+ * - found: link the JAP order number (checked against JAP's status API) so it is tracked like any other order;
+ * - not_found: mark it 'failed' so the normal Retry button can place it.
+ */
+export async function resolveUnknownBoost(env: Env, id: number, input: { found: true; order_id: string } | { found: false }) {
+  const row = await env.DB.prepare('SELECT id, status FROM social_boosts WHERE id = ?').bind(id).first<{ id: number; status: string }>();
+  if (!row || row.status !== 'unknown') return null;
+  const t = now();
+  if (!input.found) {
+    const r = await env.DB.prepare(`UPDATE social_boosts SET status = 'failed', error = ?, updated_at = ? WHERE id = ? AND status = 'unknown'`)
+      .bind('Not found on JAP (checked by the owner) — use Retry to place it.', t, id).run();
+    return r.meta.changes === 1 ? { status: 'failed' as const } : null;
+  }
+  const orderId = input.order_id.trim().replace(/^#/, '');
+  if (!/^\d{1,20}$/.test(orderId)) throw new SocialBoostError('jap_error', 'Enter the JAP order number (digits only).');
+  const conn = await boostConnections(env);
+  if (!conn.japKey) throw new SocialBoostError('not_connected', 'Missing JAP API key.');
+  const taken = await env.DB.prepare('SELECT id FROM social_boosts WHERE jap_order_id = ? AND id != ?').bind(orderId, id).first();
+  if (taken) throw new SocialBoostError('jap_error', `JAP order #${orderId} is already linked to another post.`);
+  const s = await jap(env, conn.japKey, { action: 'status', order: orderId });
+  if (s.kind === 'error') throw new SocialBoostError('jap_error', `JAP: ${s.message}`);
+  if (s.kind !== 'ok') throw new SocialBoostError('jap_error', s.message);
+  const d = s.data ?? {};
+  const r = await env.DB.prepare(`UPDATE social_boosts SET status = 'ordered', jap_order_id = ?, jap_status = ?, jap_remains = ?, charge_usd = ?, error = NULL, updated_at = ? WHERE id = ? AND status = 'unknown'`)
+    .bind(orderId, d.status === undefined ? null : String(d.status), d.remains === undefined ? null : Number(d.remains), d.charge === undefined ? null : String(d.charge), t, id).run();
+  return r.meta.changes === 1 ? { status: 'ordered' as const, order: orderId } : null;
 }
 
 const FINAL = new Set(['Completed', 'Canceled', 'Cancelled', 'Partial', 'Refunded']);

@@ -110,6 +110,7 @@ function startMock() {
             if (mock.jap.mode === 'down') { rs.writeHead(502, { 'content-type': 'text/html' }); return rs.end('<html>Bad gateway</html>'); }
             mock.jap.orders.push(f); return send(200, { order: 9000 + mock.jap.orders.length });
           }
+          if (f.action === 'status' && f.order) return send(200, f.order === '404' ? { error: 'Incorrect order ID' } : { charge: '0.2', start_count: '0', status: 'Completed', remains: '0', currency: 'USD' });
           if (f.action === 'status') return send(200, Object.fromEntries(f.orders.split(',').map((id) => [id, { charge: '0.11625', start_count: '0', status: 'In progress', remains: '40', currency: 'USD' }])));
           return send(200, { error: 'Incorrect request' });
         }
@@ -905,6 +906,22 @@ async function main() {
       await sleep(50);
       eq((await A.put('/social-boost', settings({ enabled: true }))).status, 200, 'on again');
       eq((await A.post('/social-boost/run')).json.ordered, 0, 'posts from while it was off are ignored');
+      // the owner resolves "unclear" rows after checking JAP: found → linked to the JAP order; not found → failed → Retry
+      eq((await A.post('/social-boost/' + unknown.id + '/resolve', { found: true, order_id: 'abc' })).status, 502, 'order number must be digits');
+      eq((await A.post('/social-boost/' + unknown.id + '/resolve', { found: true, order_id: '404' })).status, 502, 'JAP must know the order');
+      const found = await A.post('/social-boost/' + unknown.id + '/resolve', { found: true, order_id: '#123456' });
+      eq(found.status, 200, JSON.stringify(found.json)); eq(found.json.order, '123456', 'order linked');
+      let linked = (await A.get('/social-boost')).json.rows.find((x) => x.id === unknown.id);
+      eq(linked.status, 'ordered', 'now ordered'); eq(linked.jap_order_id, '123456', 'JAP id'); eq(linked.jap_status, 'Completed', 'JAP status stored');
+      eq((await A.post('/social-boost/' + unknown.id + '/resolve', { found: false })).status, 409, 'only unclear rows resolve');
+      const before = mock.jap.orders.length;
+      mock.jap.mode = 'down'; mock.igPosts.unshift(ig('NEW4', -100));
+      eq((await A.post('/social-boost/run')).json.unknown, 1, 'second unclear');
+      mock.jap.mode = 'ok';
+      const u2 = (await A.get('/social-boost')).json.rows.find((x) => x.post_id === 'igNEW4');
+      eq((await A.post('/social-boost/' + u2.id + '/resolve', { found: false })).json.status, 'failed', 'marked not on JAP');
+      eq((await A.post('/social-boost/' + u2.id + '/retry')).json.status, 'ordered', 'retry after not-found');
+      eq(mock.jap.orders.length, before + 1, 'placed exactly once');
       eq((await A.put('/social-boost', settings({ enabled: false }))).status, 200, 'leave off');
     });
   }

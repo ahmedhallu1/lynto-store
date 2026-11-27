@@ -46,6 +46,15 @@ export function SocialBoost() {
     setMsg({ kind: r.failed || r.unknown ? 'warn' : 'ok', text: `Checked ${r.checked} recent post(s): ${r.ordered} ordered, ${r.failed} failed, ${r.unknown} unclear, ${r.skipped} over the daily limit.${r.note ? ' ' + r.note : ''}` });
   });
   const retry = (id: number) => act('retry' + id, async () => { const r = await adminApi.post<{ status: string; error?: string }>(`/social-boost/${id}/retry`); setMsg({ kind: r.status === 'ordered' ? 'ok' : 'bad', text: r.status === 'ordered' ? 'Ordered.' : r.error ?? r.status }); });
+  const resolveFound = (id: number) => {
+    const order = prompt('JAP order number for this post (from Orders on justanotherpanel.com):')?.trim();
+    if (!order) return;
+    act('found' + id, async () => { const r = await adminApi.post<{ order: string }>(`/social-boost/${id}/resolve`, { found: true, order_id: order }); setMsg({ kind: 'ok', text: `Linked to JAP order #${r.order}. Its progress is now tracked here.` }); });
+  };
+  const resolveMissing = (id: number) => {
+    if (!confirm('Mark this order as NOT on JAP? It becomes “failed”, and you can then press Retry to place it. Only do this after checking Orders on justanotherpanel.com — otherwise the post could be ordered twice.')) return;
+    act('missing' + id, async () => { await adminApi.post(`/social-boost/${id}/resolve`, { found: false }); setMsg({ kind: 'ok', text: 'Marked as not on JAP. Press Retry to place the order.' }); });
+  };
   const tgt = (p: 'facebook' | 'instagram', k: keyof Target, v: any) => setForm({ ...form, [p]: { ...form[p], [k]: v } });
 
   const status = !ready ? <Badge kind="warn">Not connected</Badge>
@@ -137,14 +146,17 @@ export function SocialBoost() {
                     <td className="p-3">{r.quantity} × #{r.service}<div className="text-xs text-dim">{when(r.created_at)} · {r.trigger}</div></td>
                     <td className="p-3"><Badge kind={STATUS_KIND[r.status] ?? 'neutral'}>{r.status === 'unknown' ? 'unclear — check JAP' : r.status}</Badge>{r.error && <div className="mt-1 max-w-xs text-xs text-bad">{r.error}</div>}</td>
                     <td className="p-3 text-xs">{r.jap_order_id ? <>#{r.jap_order_id}<div className="text-dim">{r.jap_status ?? 'sent'}{r.jap_remains ? ` · ${r.jap_remains} left` : ''}{r.charge_usd ? ` · $${r.charge_usd}` : ''}</div></> : '—'}</td>
-                    <td className="p-3 text-end">{(r.status === 'failed' || r.status === 'skipped') && <Button size="sm" variant="secondary" loading={busy === 'retry' + r.id} onClick={() => { if (confirm(`Place this order on JAP now (${r.quantity} × service ${r.service})?`)) retry(r.id); }}>Retry</Button>}</td>
+                    <td className="p-3 text-end">{r.status === 'unknown' && <div className="flex flex-col items-end gap-1">
+                      <Button size="sm" variant="secondary" loading={busy === 'found' + r.id} onClick={() => resolveFound(r.id)}>Found on JAP</Button>
+                      <Button size="sm" variant="ghost" loading={busy === 'missing' + r.id} onClick={() => resolveMissing(r.id)}>Not on JAP</Button>
+                    </div>}{(r.status === 'failed' || r.status === 'skipped') && <Button size="sm" variant="secondary" loading={busy === 'retry' + r.id} onClick={() => { if (confirm(`Place this order on JAP now (${r.quantity} × service ${r.service})?`)) retry(r.id); }}>Retry</Button>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className="mt-2 text-xs text-dim">“Unclear” means JAP did not answer clearly, so the order may or may not exist. It is never retried automatically — check Orders on justanotherpanel.com.</p>
+        <p className="mt-2 text-xs text-dim">“Unclear” means JAP did not answer clearly, so the order may or may not exist. It is never retried automatically — check Orders on justanotherpanel.com, then press “Found on JAP” (enter its order number) or “Not on JAP” (then Retry).</p>
       </Card>
     </>
   );
